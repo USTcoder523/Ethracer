@@ -12,29 +12,36 @@ SHELL ["/bin/bash", "-c", "-l"]
 RUN apt-get update && apt-get -y upgrade
 RUN apt-get install -y software-properties-common python-software-properties
 
-RUN add-apt-repository ppa:jonathonf/python-3.6
+RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update
 RUN apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv
 
 RUN apt-get install -y wget unzip python-virtualenv git build-essential software-properties-common curl
 RUN curl -O https://storage.googleapis.com/golang/go1.8.5.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.8.5.linux-amd64.tar.gz && mkdir -p ~/go; \
-echo "export GOPATH=$HOME/go" >> ~/.bashrc && echo "export PATH=$PATH:$HOME/go/bin:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc
+    echo "export GOPATH=$HOME/go" >> ~/.bashrc && echo "export PATH=$PATH:$HOME/go/bin:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc
 
 # Install geth and solc
 COPY --from=geth /usr/local/bin/evm /usr/local/bin/evm
 COPY --from=solc /usr/bin/solc /usr/bin/solc
 
-RUN mkdir /ethracer
-COPY . /ethracer/
-
 RUN mkdir dependencies 
-RUN cd dependencies && wget https://github.com/Z3Prover/z3/archive/master.zip &&  unzip master.zip && cd z3-master &&  python3.6 scripts/mk_make.py --prefix=/ --python --pypkgdir=/dependencies && \
-cd build &&  make &&  make install
+# RUN cd dependencies && wget https://github.com/Z3Prover/z3/archive/master.zip &&  unzip master.zip && cd z3-master &&  python3.6 scripts/mk_make.py --prefix=/ --python --pypkgdir=/dependencies && \
+# cd build &&  make &&  make install
 
 ENV PYTHONPATH "${PYTONPATH}:/dependencies"
 
 RUN apt-get update && apt-get install -y python-pip python3-pip musl-dev pandoc && pip3 install --upgrade setuptools
-RUN python3.6 -m pip install requests web3 pysha3
+RUN python3.6 -m pip install requests web3 pysha3 z3-solver
+
+RUN apt-get install -y vim
+
+RUN mkdir /ethracer
+COPY . /ethracer/
+
+WORKDIR /ethracer/HB
+
+ENTRYPOINT ["python3.6", "main.py"]
+
 EXPOSE 80
 
 

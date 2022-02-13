@@ -81,7 +81,7 @@ def exec_contract(sol_file, c_address, owner):
 	if len(c_address) < 1:  print('\033[91m[-] Contract address is incorrect %s \033[0m' % c_address )
 
 	# find the compiled code from the local blockchain.
-	web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8666"))
+	web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
 	compiled_code = web3.eth.getCode(c_address)
 
 	# get the function hashes from the Solidity code
