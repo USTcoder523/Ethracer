@@ -12,9 +12,11 @@ SHELL ["/bin/bash", "-c", "-l"]
 RUN apt-get update && apt-get -y upgrade
 RUN apt-get install -y software-properties-common python-software-properties
 
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update
-RUN apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv
+RUN apt-get install -y build-essential checkinstall
+RUN apt-get install -y libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev wget
+RUN wget https://www.python.org/ftp/python/3.6.14/Python-3.6.14.tar.xz
+RUN tar xvf Python-3.6.14.tar.xz
+RUN cd Python-3.6.14 && ./configure && make altinstall
 
 RUN apt-get install -y wget unzip python-virtualenv git build-essential software-properties-common curl
 RUN curl -O https://storage.googleapis.com/golang/go1.8.5.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.8.5.linux-amd64.tar.gz && mkdir -p ~/go; \
