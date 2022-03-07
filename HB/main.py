@@ -65,7 +65,7 @@ def initialize_datastructures():
 	MyGlobals.solution_dict.clear()
 
 # Analyze the given contrat for EO bugs.
-def exec_contract(sol_file, c_address, owner):
+def exec_contract(sol_file, c_address, owner, is_binary=False):
 	'''
 	First it calls the wHBFinder object to obtain concrete events 
 	and wHB relations between them. These events are then fuzzed to 
@@ -82,7 +82,13 @@ def exec_contract(sol_file, c_address, owner):
 
 	# find the compiled code from the local blockchain.
 	web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
-	compiled_code = web3.eth.getCode(c_address)
+	if not is_binary: 
+		compiled_code = web3.eth.getCode(c_address)
+	else:
+		with open(sol_file, 'r') as f:
+			compiled_code = f.read()
+		compiled_code = bytearray.fromhex(compiled_code)
+	
 
 	# get the function hashes from the Solidity code
 	if not os.path.isfile(sol_file):  
@@ -197,6 +203,7 @@ parser.add_argument("--blockchain",        help="Read storage values from the ma
 parser.add_argument("--atblock",        type=str,   help="Check at certain block number ", action='store', nargs=1)
 parser.add_argument("--checkone",        type=str,   help="Check one contract by specifying: 1) the file that holds the bytecode, and, 2) contract's address ", action='store', nargs=2)
 parser.add_argument("--owner",					type=str, help="Provide owner address of the contract", action='store', nargs=1)
+parser.add_argument("--bin", help="The provided file contains the bytecode of the contract", action='store_true')
 args = parser.parse_args()
 
 if args.debug:
@@ -219,7 +226,7 @@ if args.atblock:
 
 if args.checkone:
 	if args.owner:
-		exec_contract(args.checkone[0], args.checkone[1], args.owner[0])
+		exec_contract(args.checkone[0], args.checkone[1], args.owner[0], args.bin)
 	else:
 		print("Please provide the owner addres\n")
 		exit(0)

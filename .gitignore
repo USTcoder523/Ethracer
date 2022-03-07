@@ -1,3 +1,5 @@
 .idea/
+.vscode/
 HB/reports/
 /venv
+__pycache__/
