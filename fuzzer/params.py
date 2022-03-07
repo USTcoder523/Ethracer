@@ -1,3 +1,4 @@
+import os
 from web3 import Web3
 # , KeepAliveRPCProvider, IPCProvider
 
@@ -10,8 +11,8 @@ st = {}
 def get_storage_value( address, index, read_from_blockchain = False ):
 
 	if read_from_blockchain:
-		# web3 = Web3(KeepAliveRPCProvider(host='host.docker.internal', port='8545'))
-		web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
+		# web3 = Web3(KeepAliveRPCProvider(host='127.0.0.1', port='8545'))
+		web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
 		value = web3.eth.getStorageAt( address, index )
 		return value
 	else:
@@ -52,8 +53,8 @@ def create_params(read_from_blockchain, c_address):
 
 
 	if read_from_blockchain:
-		# web3 = Web3(KeepAliveRPCProvider(host='host.docker.internal', port='8545'))
-		web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
+		# web3 = Web3(KeepAliveRPCProvider(host='127.0.0.1', port='8545'))
+		web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
 		s.st['contract_balance'] = str(web3.eth.getBalance(c_address)+1).zfill(64)
 
 

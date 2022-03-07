@@ -1,6 +1,7 @@
 from __future__ import print_function
 import copy
 from math import *
+import os
 from op_list import *
 from op_parse import *
 from hashlib import *
@@ -156,7 +157,7 @@ def send_ether(addr_from, addr_to, amount):
 def get_storage_value( address, index, st_blocknumber, read_from_blockchain = False ):
 
 	if read_from_blockchain:
-		web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
+		web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
 		value = web3.eth.getStorageAt( address, index )
 		return value
 	else:
@@ -511,7 +512,7 @@ def execute( code, stack, pos, storage, temp_storage, mmemory, data, st_blocknum
 		else:
 			
 			if read_from_blockchain:
-				web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
+				web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
 				contract_address = get_params('contract_address','')
 				contract_address_new = contract_address
 				if not isinstance(contract_address_new, str):

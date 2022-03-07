@@ -23,11 +23,11 @@ def get_storage_value( address, index, read_from_blockchain = False ):
 
 	if read_from_blockchain:
 		# if MyGlobals.STORAGE_AT_BLOCK < 4350000:
-			# web3 = Web3(KeepAliveRPCProvider(host='host.docker.internal', port='8666'))
-		web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8666"))
+			# web3 = Web3(KeepAliveRPCProvider(host='127.0.0.1', port='8666'))
+		web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
 		# else:
-		# 	# web3 = Web3(KeepAliveRPCProvider(host='host.docker.internal', port='8545'))
-		# 	web3 = Web3(Web3.HTTPProvider("http://host.docker.internal:8545"))
+		# 	# web3 = Web3(KeepAliveRPCProvider(host='127.0.0.1', port='8545'))
+		# 	web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
 		# print(Web3.toChecksumAddress(address), '\n')	
 		if MyGlobals.STORAGE_AT_BLOCK >= 0:
