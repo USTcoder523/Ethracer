@@ -39,9 +39,11 @@ RUN apt-get install -y vim
 
 RUN mkdir /ethracer
 COPY . /ethracer/
+RUN mkdir /ethracer/HB/reports
 
 WORKDIR /ethracer/HB
 
+ENV ETHEREUM_ENDPOINT="http://host.docker.internal:8666"
 ENTRYPOINT ["python3.6", "main.py"]
 
 EXPOSE 80

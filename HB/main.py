@@ -17,8 +17,9 @@ from optimize_nodes import *
 import global_params
 from web3 import Web3
 
-if os.environ['ETHEREUM_ENDPOINT'] == "" or os.environ['ETHEREUM_ENDPOINT'] is None:
-	os.environ['ETHEREUM_ENDPOINT'] = "127.0.0.1:8666"
+print(os.environ)
+if 'ETHEREUM_ENDPOINT' not in os.environ or os.environ['ETHEREUM_ENDPOINT'] == "" or os.environ['ETHEREUM_ENDPOINT'] is None:
+	os.environ['ETHEREUM_ENDPOINT'] = "http://127.0.0.1:8666"
 
 
 # Initialize global parameters from the file global_params. These values 
