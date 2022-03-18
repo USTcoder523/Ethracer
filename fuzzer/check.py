@@ -26,6 +26,8 @@ MAX_LEN_ALL_TRACES           = 100000
 ONE_CONTRACT_fuzzer_TIMEOUT = 30 * 60
 
 PATH_REPORTS = 'reports/'
+if 'ETHRACER_REPORTS' in os.environ and os.environ['ETHRACER_REPORTS'] != "" and os.environ['ETHRACER_REPORTS'] is not None:
+	PATH_REPORTS = os.environ['ETHRACER_REPORTS']
 
 global st
 
