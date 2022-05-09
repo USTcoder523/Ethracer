@@ -3,3 +3,5 @@
 HB/reports/
 /venv
 __pycache__/
+
+/contracts/

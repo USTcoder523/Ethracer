@@ -83,6 +83,9 @@ class WHBFinder:
 			else:
 				value = (hex(value).rstrip('L')).lstrip('0x')
 
+			if value == '':
+				value = '7'*40
+
 			key = 'tx_caller'
 
 		if not ('input' in key and not 'inputlength' in key):	
