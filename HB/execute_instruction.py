@@ -226,7 +226,7 @@ class EVMCore(EVMCoreHelper):
 		if actual_key in [2, 3]: key = 2
 
 		if op not in allops:
-			print('Unknown operation %s at pos %x' % (op,pos) )
+			print('Unknown operation %s at pos %x' % (code[pos][op],pos) )
 			return pos,True
 
 		# check if stack has enough elements
