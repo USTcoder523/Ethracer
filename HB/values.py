@@ -16,7 +16,7 @@ def optimize_hb(hb_list):
 
 			if not temp in hb_list:
 				simplified_hb.append(copy.deepcopy(item))
-	return simplified_hb			
+	return simplified_hb
 
 # Read storage value
 def get_storage_value( address, index, read_from_blockchain = False ):
@@ -29,7 +29,7 @@ def get_storage_value( address, index, read_from_blockchain = False ):
 		# 	# web3 = Web3(KeepAliveRPCProvider(host='127.0.0.1', port='8545'))
 		# 	web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
-		# print(Web3.toChecksumAddress(address), '\n')	
+		# print(Web3.toChecksumAddress(address), '\n')
 		if MyGlobals.STORAGE_AT_BLOCK >= 0:
 			value = web3.eth.getStorageAt( Web3.toChecksumAddress(address), index, MyGlobals.STORAGE_AT_BLOCK )
 		else:
@@ -38,7 +38,7 @@ def get_storage_value( address, index, read_from_blockchain = False ):
 	else:
 		return '0'.zfill(64)
 
-# Get value 
+# Get value
 def get_params(param, input):
 
 	if (param+str(input)) in MyGlobals.st:
@@ -49,12 +49,12 @@ def get_params(param, input):
 
 # Is set
 def is_params(param,input):
-	return (param+str(input)) in MyGlobals.st 
+	return (param+str(input)) in MyGlobals.st
 
 # Set parameter
 def set_params(param, input, value):
 	global st
-	MyGlobals.st[param+str(input)] = value		
+	MyGlobals.st[param+str(input)] = value
 
 # Create a dict of paramters
 # def initialize_params(read_from_blockchain, c_address, nsolutions):
@@ -97,46 +97,46 @@ def create_configuration( stack, mmemory, storage):
 	nc['mmemory'] = copy.deepcopy(mmemory)
 	nc['storage'] = copy.deepcopy(storage)
 	return nc
-	
+
 def add_configuration( step, configurations, nc):
 	if step in configurations: configurations[step].append( nc )
 	else:configurations[step] = [nc]
-	
+
 
 def configuration_exist(step, configurations, nc):
 	if step not in configurations:
 		return False
-	
+
 	found = False
 	for os in configurations[step]:
 
 		# Compare stack
 		if os['stack'] != nc['stack'] : continue
-		
+
 		# Compare mmemory
 		if os['mmemory'] != nc['mmemory']: continue
 
 		# Compare storage
 		if( os['storage'] != nc['storage'] ):continue
-			
+
 		found = True
 		break
-		
-	return found 
-	
+
+	return found
+
 def seen_configuration( configurations, ops, position, stack, mmemory, storage):
 
 		# Check if configuration exist
 		op = ops[position]['o']
 		step = ops[position]['id']
 		nc = create_configuration( stack, mmemory, storage)
-		if configuration_exist(step, configurations, nc): 
+		if configuration_exist(step, configurations, nc):
 			return True
 		else:
 			add_configuration( step, configurations, nc)
-				
+
 		return False
-		
+
 def print_configuration( conf ):
 	for c in conf:
 		print_stack(  c['stack'] )
@@ -169,7 +169,7 @@ class MyGlobals(object):
 
 	#
 	# Z3 solver
-	# 
+	#
 	SOLVER_TIMEOUT = 10000			#timeout
 	s = Solver()
 	s1 = Solver()
@@ -183,7 +183,7 @@ class MyGlobals(object):
 	stop_search = False
 	visited_nodes = 0
 
-	fast_search = True	
+	fast_search = True
 	good_jump_positions = []
 
 	last_eq_step = -1
@@ -207,7 +207,7 @@ class MyGlobals(object):
 	# Set timeout to < 1 in order to ignore it
 	ONE_CONTRACT_HB_TIMEOUT = 120 * 60
 	Time_checkpoint_HB = datetime.datetime.now()
-	ONE_HB_TIMEOUT = 2 * 60
+	bNE_HB_TIMEOUT = 2 * 60
 	Time_checkpoint = datetime.datetime.now()
 
 	num_solver_calls = 0
@@ -223,7 +223,7 @@ class MyGlobals(object):
 
 def clear_globals():
 
-	MyGlobals.s.reset() 
+	MyGlobals.s.reset()
 	MyGlobals.s1.reset()
 	MyGlobals.s2.reset()
 	MyGlobals.s.set("timeout", MyGlobals.SOLVER_TIMEOUT)
@@ -238,5 +238,5 @@ def clear_globals():
 
 
 
-	
+
 

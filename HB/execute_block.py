@@ -14,12 +14,12 @@ from z3 import *
 
 
 class EVM(EVMCore):
-	''' 
+	'''
 	* This class is responsible for generating and propogating symbolic costraints.
 	* Function run_one_check implements the framework of finding weak HB and \
-	  execute_one_block is resposible for executing each block of instructions 
+	  execute_one_block is resposible for executing each block of instructions
 	  and checking path feasiblity along the way.
-	* It returns the solution of a weak HB relation if it exists.  
+	* It returns the solution of a weak HB relation if it exists.
 	'''
 
 	def __init__(self, max_call_depth, max_jump_depth, search_enhance, contract_address, function1, function2, noHB, debug, read_from_blockchain):
@@ -32,7 +32,7 @@ class EVM(EVMCore):
 		self.noHB = noHB
 		self.debug = debug
 		self.read_from_blockchain = read_from_blockchain
-	
+
 	def function_accept(self, op, stack, trace, debug):
 		op_name = op['o']
 		op_val = op['input']
@@ -47,19 +47,19 @@ class EVM(EVMCore):
 			if self.is_fixed(stack[-1]):
 
 				if self.get_value(stack[-1]) == 0:
-					return True, False	
-							
+					return True, False
+
 				else:
 					return False, False
 
 			else:
-				return False, False				
+				return False, False
 
-		return True, False	
+		return True, False
 
-	def function_sstore(self, op, stack, trace, debug):		
+	def function_sstore(self, op, stack, trace, debug):
 		op_name = op['o']
-		op_val = op['input']	
+		op_val = op['input']
 		return True, True
 
 	def add_additional_conditions(self, solver, sha3_values):
@@ -81,10 +81,10 @@ class EVM(EVMCore):
 
 				print(formula, 'in formula\n')
 				solver.add( formula == BitVecVal(1, 256) )
-			
+
 			else:
 				print('Not able to add conditions\n')
-		return		
+		return
 
 	def new_state(self, stack, storage, sha3_dict, sha3_values, mmemory, trace, data):
 		datastructures = {}
@@ -97,16 +97,16 @@ class EVM(EVMCore):
 
 
 	'''
-		Finding weak HB between function1, function2 happens in four phases. 
+		Finding weak HB between function1, function2 happens in four phases.
 		1 -----> function1 terminates.
 		2 -----> function2 terminates.
 		3 -----> function2 terminates or function2 throws.
 		4 -----> function1 throws if function2 terminates in stage 3.
 
 		This function takes the key as input which specifies the phase.
-		Hence, the values of key could be 1, 2, 3, 4. 
+		Hence, the values of key could be 1, 2, 3, 4.
 		It calls into execute_one_block for symbolic analysis of each phase.
-	''' 		
+	'''
 	def  run_one_check(self, ops, key, datastructures = {}):
 
 		# Stop the search once it exceeds timeout
@@ -128,7 +128,7 @@ class EVM(EVMCore):
 			print('[ ] Started executing 1st tree... ')
 			clear_globals()
 
-			storage = {}    
+			storage = {}
 			stack   = []
 			mmemory = {}
 			data = {}
@@ -141,16 +141,16 @@ class EVM(EVMCore):
 				MyGlobals.s.push()
 				self.execute_one_block(ops,stack,0, trace, storage, mmemory, data, configurations, sha3_dict, sha3_values, ['SSTORE', 'CALL', 'DELEGATECALL', 'CALLCODE', 'SUICIDE'], self.function_sstore, 0, 0, function_hash, False, key )
 				MyGlobals.s.pop()
-				
+
 				return MyGlobals.solution_found
-			
+
 			if self.noHB:
 				MyGlobals.s.push()
 				self.execute_one_block(ops,stack,0, trace, storage, mmemory, data, configurations, sha3_dict, sha3_values, ['STOP', 'RETURN', 'SUICIDE'], self.function_accept, 0, 0, function_hash, True, key )
-				MyGlobals.s.pop()	
-				return		
-		
-			MyGlobals.s = MyGlobals.s1	
+				MyGlobals.s.pop()
+				return
+
+			MyGlobals.s = MyGlobals.s1
 			MyGlobals.s.push()
 			self.execute_one_block(ops,stack,0, trace, storage, mmemory, data, configurations, sha3_dict, sha3_values, ['STOP', 'RETURN'], self.function_accept, 0, 0, function_hash, False, key )
 			MyGlobals.s.pop()
@@ -167,7 +167,7 @@ class EVM(EVMCore):
 		if 2 == key:
 			print('\033[92m    Visited %d nodes\033[0m'%(MyGlobals.visited_nodes))
 			print('[ ] Started executing 2nd tree... ')
-			function_hash = self.function2	
+			function_hash = self.function2
 			stack = []
 			storage2 = copy.deepcopy(datastructures['storage'])
 			sha3_dict2 = copy.deepcopy(datastructures['sha3_dict'])
@@ -179,7 +179,7 @@ class EVM(EVMCore):
 			MyGlobals.stop_search = False
 
 			# Setting up the solvers
-			
+
 			MyGlobals.s2.reset()
 			MyGlobals.s = MyGlobals.s2
 			MyGlobals.s.push()
@@ -202,7 +202,7 @@ class EVM(EVMCore):
 
 		'''
 		if 3 == key:
-			print('\033[92m    Visited %d nodes\033[0m'%(MyGlobals.visited_nodes))	
+			print('\033[92m    Visited %d nodes\033[0m'%(MyGlobals.visited_nodes))
 			print('[ ] Started executing 3rd tree... ')
 			function_hash = self.function2
 			stack = []
@@ -220,7 +220,7 @@ class EVM(EVMCore):
 			MyGlobals.s.pop()
 
 			print('\033[94m[+] Finished executing 3rd tree... \033[0m')
-			
+
 			if not MyGlobals.solution_found:
 				print('\033[92m    Visited %d nodes\033[0m'%(MyGlobals.visited_nodes))
 				print('[ ] Started executing 3rd tree... ')
@@ -238,7 +238,7 @@ class EVM(EVMCore):
 				MyGlobals.s.push()
 				self.execute_one_block(ops,stack,0, trace, storage3, mmemory, data3, configurations, sha3_dict3, sha3_values3,  ['STOP', 'RETURN'], self.function_accept, 0, 0, function_hash, False,  key )
 				MyGlobals.s.pop()
-			
+
 			if MyGlobals.in_sha3>0 and MyGlobals.solution_found:
 				return
 
@@ -250,7 +250,7 @@ class EVM(EVMCore):
 
 		** Phase 4
 
-		'''	
+		'''
 		if 4 == key:
 			print('\033[92m    Visited %d nodes\033[0m'%(MyGlobals.visited_nodes))
 			print('[ ] Started executing 4th tree... ')
@@ -264,7 +264,7 @@ class EVM(EVMCore):
 			trace   = []
 			MyGlobals.search_condition_found = False
 			MyGlobals.stop_search = False
-			
+
 			# Setting up the solvers
 			MyGlobals.s = Solver()
 			MyGlobals.s = MyGlobals.s1
@@ -281,9 +281,9 @@ class EVM(EVMCore):
 			MyGlobals.solution_found = False
 			return
 
-		return		
+		return
 
-		
+
 	'''
 		This function is called by run_one_check function and is in mutual recursion with it.
 		It calls back into run_one_check when a particular phase of finding weak HB is completed.
@@ -304,11 +304,11 @@ class EVM(EVMCore):
 		if key in [2, 3]: actual_key = 2
 		jump_condition = False
 
-		if MyGlobals.stop_search : return 
+		if MyGlobals.stop_search : return
 
 		MyGlobals.visited_nodes += 1
 		if MyGlobals.visited_nodes > MyGlobals.MAX_VISITED_NODES: return
-		
+
 		# Stop the search once it exceeds timeout
 		time_now = datetime.datetime.now()
 		if MyGlobals.ONE_HB_TIMEOUT < int((time_now - MyGlobals.Time_checkpoint).total_seconds()):
@@ -316,15 +316,15 @@ class EVM(EVMCore):
 			return
 		if MyGlobals.ONE_CONTRACT_HB_TIMEOUT < int((time_now - MyGlobals.Time_checkpoint_HB).total_seconds()):
 			MyGlobals.stop_search = True
-			return	
-			
+			return
+
 		# Execute the next block of operations.
 		first = True
 		newpos = pos
 		while (first or newpos != pos) and not MyGlobals.stop_search:
 			first = False
-			pos = newpos	
-				
+			pos = newpos
+
 			# If no more code, then stop
 			if pos >= len(ops) or pos < 0:
 				if self.debug: print('\033[94m[+] Reached bad/end of execution\033[0m')
@@ -334,16 +334,16 @@ class EVM(EVMCore):
 			if self.debug: print('[ %3d %3d %5d] : %4x : %12s : %s  ' % (calldepth, jumpdepth, MyGlobals.visited_nodes, ops[pos]['id'], ops[pos]['o'], ops[pos]['input']), search_op )
 
 
-			# Check if calldepth or jumpdepth should be changed 
+			# Check if calldepth or jumpdepth should be changed
 			# and stop the search if certain conditions are met
-			if pos == 0: 
+			if pos == 0:
 				calldepth += 1
 				jumpdepth = 0
 			if ops[pos]['o'] == 'JUMPDEST': jumpdepth += 1
-			if( jumpdepth > MyGlobals.MAX_JUMP_DEPTH): 
+			if( jumpdepth > MyGlobals.MAX_JUMP_DEPTH):
 				if self.debug:print ('\033[95m[-] Reach MAX_JUMP_DEPTH\033[0m' , jumpdepth,  MyGlobals.MAX_JUMP_DEPTH)
 				return
-			if( calldepth > MyGlobals.MAX_CALL_DEPTH): 
+			if( calldepth > MyGlobals.MAX_CALL_DEPTH):
 				if self.debug:print ('\033[95m[-] Reach MAX_CALL_DEPTH\033[0m' )
 				return
 
@@ -364,15 +364,15 @@ class EVM(EVMCore):
 				if self.search_enhance:
 					new_search_condition_found, stop_expanding_the_search_tree =  search_function( ops[pos] , stack , trace, self.debug )
 
-				else:	
+				else:
 					new_search_condition_found, stop_expanding_the_search_tree =  search_function( ops[pos] , stack , trace, self.debug )
-					
+
 				MyGlobals.search_condition_found = MyGlobals.search_condition_found or new_search_condition_found
 
 				if MyGlobals.search_condition_found and self.search_enhance:
 					MyGlobals.solution_found = True
-				
-				# In case there is a probability of finding a solution we need to add the additional constraints to the solver before finding the solutions. 
+
+				# In case there is a probability of finding a solution we need to add the additional constraints to the solver before finding the solutions.
 				if MyGlobals.search_condition_found and not self.search_enhance:
 					self.add_additional_conditions(MyGlobals.s, sha3_values)
 					# If jump_condition is True then add the addtional condition of JUMPI to the global solver to retrieve solutions.
@@ -393,11 +393,11 @@ class EVM(EVMCore):
 
 				if MyGlobals.search_condition_found and (self.noHB or (key == 3 and find_solution) or key == 4) and find_solution:
 					solution = get_function_calls( calldepth, key, function_hash, self.function1, self.function2 ,self.debug )
-					
+
 					if not solution:
 						# In case of jump condition, the control should not be returned to the caller of execute_block. Instead, callee function continues to execute.
 						if not jump_condition:
-							return 
+							return
 
 						else:
 							MyGlobals.s.pop()
@@ -411,52 +411,52 @@ class EVM(EVMCore):
 						if self.noHB:
 							if not (self.function1, 'noHB') in MyGlobals.solution_dict:
 								MyGlobals.solution_dict[(self.function1, self.function2)] = []
-							
+
 							if not solution in MyGlobals.solution_dict[(self.function1, 'noHB')] and len(MyGlobals.solution_dict[(self.function1, 'noHB')]) <  1:
-								MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)	
+								MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)
 
 							if len(MyGlobals.solution_dict[(self.function1, self.function2)]) == 1:
 								MyGlobals.stop_search = True
-							
-							return	
-							
+
+							return
+
 						if not (self.function1, self.function2) in MyGlobals.solution_dict:
 							MyGlobals.solution_dict[(self.function1, self.function2)] = []
 
 						# if not solution in MyGlobals.solution_dict[(self.function1, function2)] and len(MyGlobals.solution_dict[(self.function1, function2)]) < MyGlobals.max_solutions:
-						if solution_filter(solution, self.function1, self.function2):	
+						if solution_filter(solution, self.function1, self.function2):
 							MyGlobals.ONE_HB_TIMEOUT = 2*60
 							MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)
-		
-							
+
+
 						if len(MyGlobals.solution_dict[(self.function1, self.function2)]) == MyGlobals.max_solutions:
 							MyGlobals.stop_search = True
 
-						# In case of jump condition, the stack has to be cleared with the extra jump condition before handling JUMPI operation in its usual way.	
+						# In case of jump condition, the stack has to be cleared with the extra jump condition before handling JUMPI operation in its usual way.
 						if jump_condition and not len(MyGlobals.solution_dict[(self.function1, self.function2)]) == MyGlobals.max_solutions:
 							MyGlobals.s.pop()
 							jump_condition = False
 							MyGlobals.search_condition_found = False
-						
 
-						else:	
+
+						else:
 							return
 
-				if jump_condition:		
-					jump_condition = False		
+				if jump_condition:
+					jump_condition = False
 
 			# Execute the next operation
 			newpos, halt = self.execute( ops, stack, pos, storage, mmemory, data, trace, calldepth, function_hash, key, self.search_enhance,self.debug, self.read_from_blockchain  )
 
 
-			# If halt is True, then the execution should stop 
+			# If halt is True, then the execution should stop
 			if halt:
-			
+
 				if self.debug: print('\033[94m[+] Halted on %s on line %x \033[0m' % (ops[pos]['o'],ops[pos]['id']))
-				
+
 				# if MyGlobals.stop_search: Search condition found
 				# if not MyGlobals.stop_search: Search condition not found
-				# If normal stop 
+				# If normal stop
 				if ops[pos]['o'] in ['STOP','RETURN','SUICIDE']:
 
 					# If search condition still not found then call again the contract
@@ -476,7 +476,7 @@ class EVM(EVMCore):
 							# Save the state of execution before calling next tree
 							datastructures = self.new_state(stack, storage, sha3_dict, sha3_values, mmemory, trace, data)
 							MyGlobals.s.push()
-							self.run_one_check( ops, key+1, datastructures )	
+							self.run_one_check( ops, key+1, datastructures )
 							MyGlobals.s.pop()
 
 						if find_solution and (self.noHB or (key == 3 and find_solution)) or key == 4:
@@ -488,20 +488,20 @@ class EVM(EVMCore):
 							if self.noHB:
 								if not (self.function1, 'noHB') in MyGlobals.solution_dict:
 									MyGlobals.solution_dict[(self.function1, self.function2)] = []
-								
+
 								if not solution in MyGlobals.solution_dict[(self.function1, 'noHB')] and len(MyGlobals.solution_dict[(self.function1, 'noHB')]) <  2:
-									MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)	
+									MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)
 
 								if len(MyGlobals.solution_dict[(self.function1, self.function2)]) == 2:
 									MyGlobals.stop_search = True
 
-								return	
+								return
 
 							if not (self.function1, self.function2) in MyGlobals.solution_dict:
 								MyGlobals.solution_dict[(self.function1, self.function2)] = []
 
 							# if not solution in MyGlobals.solution_dict[(self.function1, function2)] and len(MyGlobals.solution_dict[(self.function1, function2)]) < MyGlobals.max_solutions:
-							if solution_filter(solution, self.function1, self.function2):	
+							if solution_filter(solution, self.function1, self.function2):
 								MyGlobals.ONE_HB_TIMEOUT = 2*60
 								MyGlobals.solution_dict[(self.function1, self.function2)].append(solution)
 
@@ -513,14 +513,14 @@ class EVM(EVMCore):
 
 				# In all other cases stop further search in this branch of the tree
 				else:
-					return 
-		
-			# If program counter did not move 
+					return
+
+			# If program counter did not move
 			# It means either:
 			# 1) we need to branch
 			# 2) unknown instruction
 			if pos == newpos:
-			
+
 				si = ops[pos]
 
 				# It can be JUMPI
@@ -528,7 +528,7 @@ class EVM(EVMCore):
 					if len(stack) < 2:
 						if self.debug: print('\033[95m[-] In JUMPI (line %x) the stack is too small to execute JUMPI\033[0m' % pos )
 						return False
-			
+
 					addr = stack.pop()
 					des = stack.pop()
 
@@ -541,13 +541,13 @@ class EVM(EVMCore):
 					fallback_frame = False
 
 					#
-					# Branch when decision is incorrect (no need to compute the addresses)		
+					# Branch when decision is incorrect (no need to compute the addresses)
 					#
 
 					MyGlobals.s.push()
 					MyGlobals.s.add( des['z3'] == 0)
 					try:
-						
+
 						# We want to switch off the check for jumpi while we are searching for functions which can change the global state.
 						# But, we will switch off the jumpi check only when the execution of the desired function starts.
 
@@ -568,7 +568,7 @@ class EVM(EVMCore):
 							self.execute_one_block(ops,stack2,	pos + 1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function, jumpdepth+1, calldepth,  function_hash, find_solution,  key )
 							MyGlobals.search_condition_found = False
 
-						else:	
+						else:
 							MyGlobals.num_solver_calls+=1
 							time1 = datetime.datetime.now()
 
@@ -640,7 +640,7 @@ class EVM(EVMCore):
 
 						if self.debug: print('\033[95m[-] In JUMPI the jump address cannot be determined \033[0m'  % jump_dest )
 						return False
-		
+
 					jump_dest = self.get_value( addr )
 					if( jump_dest <= 0):
 						if self.debug: print('\033[95m[-] The jump destination is not a valid address : %x\033[0m'  % jump_dest )
@@ -653,7 +653,7 @@ class EVM(EVMCore):
 
 					MyGlobals.s.push()
 					MyGlobals.s.add( des['z3'] != 0)
-					
+
 					try:
 						if fallback_frame: return
 
@@ -685,7 +685,7 @@ class EVM(EVMCore):
 							MyGlobals.search_condition_found = False
 
 
-						else:	
+						else:
 							MyGlobals.num_solver_calls+=1
 							time1 = datetime.datetime.now()
 
@@ -697,7 +697,7 @@ class EVM(EVMCore):
 								print('found solver')
 
 							else:
-								
+
 								if MyGlobals.s.check() == sat:
 									satisfied = True
 									MyGlobals.solver_configurations[temps] = satisfied
@@ -739,15 +739,15 @@ class EVM(EVMCore):
 
 							else:
 								time2 = datetime.datetime.now()
-								MyGlobals.total_time_solver+=(time2-time1).total_seconds()	
+								MyGlobals.total_time_solver+=(time2-time1).total_seconds()
 
 
 					except Exception as e:
 						print ("Exception: "+str(e))
 
 					MyGlobals.s.pop()
-					
-					return 
+
+					return
 
 				# It can be CALLDATALOAD
 				elif si['o'] == 'CALLDATALOAD':
@@ -763,7 +763,7 @@ class EVM(EVMCore):
 
 						# assign random (offset) address as value for the variable
 						random_address = get_hash(sm) >> 64
-						
+
 						r2 = re.compile('\[[0-9 ]*\]')
 						indmat = re.search( r2, sm )
 						index = -2
@@ -829,10 +829,10 @@ class EVM(EVMCore):
 
 
 					else:
-						if self.debug: 
+						if self.debug:
 							print('\033[95m[-] In CALLDATALOAD the address does not contain symbolic variable input[*]\033[0m' )
 							print( addr )
-						return 
+						return
 
 					return
 
@@ -856,21 +856,21 @@ class EVM(EVMCore):
 
 						MyGlobals.s.push()
 						MyGlobals.s.append(If( data2['inputlength-'+ str(actual_key)+ '-' +function_hash] > BitVecVal(0, 256),  BitVecVal(1, 256),  BitVecVal(0, 256)) == BitVecVal(1,256) )
-						
+
 						self.execute_one_block(ops,stack2,	pos+1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function,  jumpdepth, calldepth, function_hash, find_solution,  key )
 						MyGlobals.s.pop()
 
 						if self.search_enhance and MyGlobals.stop_search:
-							return 
+							return
 						MyGlobals.search_condition_found = False
 
-						
+
 						# or Branch on 4 different FIXED sizes
 						# branch_array_size = [0,8,8+1*32,8+2*32]
 						branch_array_size = [8,8+1*32,8+2*32]
 						i=0
 						for one_branch_size in branch_array_size:
-							
+
 							if MyGlobals.solution_found and MyGlobals.in_sha3>0 :
 								return
 
@@ -882,36 +882,36 @@ class EVM(EVMCore):
 							data2 = copy.deepcopy(data)
 							sha3_values2 = copy.deepcopy(sha3_values)
 							sha3_dict2 = copy.deepcopy(sha3_dict)
-							
+
 							stack2.append( {'type':'constant','step':ops[pos]['id'], 'z3': BitVecVal(one_branch_size,256)} )
 							MyGlobals.s.push()
-							
-							if self.debug: print('\033[91m In branch %x of Calldatasize\n \033[0m'%(i))					
+
+							if self.debug: print('\033[91m In branch %x of Calldatasize\n \033[0m'%(i))
 							self.execute_one_block(ops,stack2,	pos+1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function,  jumpdepth, calldepth, function_hash, find_solution,  key )
 							MyGlobals.s.pop()
 							MyGlobals.search_condition_found = False
-						return 
+						return
 
 				# It can be SHA3
 				elif si['o'] == 'SHA3':
-					
+
 					s1 = stack.pop()
 					s2 = stack.pop()
 					if self.is_fixed(s2):
 						addr = self.get_value(s2)
-					
+
 					else:
-						print('Address not fixed in sha3\n')	
+						print('Address not fixed in sha3\n')
 
 					exact_address = self.get_value(s1) if is_bv_value(s1['z3']) else -1
 					changed_offset = exact_address
 					if (addr - exact_address)//32 >= 2 : changed_offset = addr//2
-								
+
 					if self.search_enhance:
 						if not self.is_fixed( mmemory[changed_offset] ):
 							res = {'type':'constant','step':ops[pos]['id'], 'z3': mmemory[changed_offset]['z3'] }
 
-						else:	
+						else:
 							res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVec('SHA3'+'-'+str(ops[pos]['id'])+'-'+function_hash, 256) }
 						stack.append(res)
 						newpos = pos+1
@@ -941,10 +941,10 @@ class EVM(EVMCore):
 								mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 
 								#find the keccak hash of the new concrete value
-								val = '' 
-								
+								val = ''
+
 								for i in range(addr//32):
-								
+
 									val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 								k = keccak_256()
@@ -962,7 +962,7 @@ class EVM(EVMCore):
 								stack2 = copy.deepcopy(stack)
 								trace2 = copy.deepcopy(trace)
 								mmemory2 = copy.deepcopy(mmemory)
-								data2 = copy.deepcopy(data)	 
+								data2 = copy.deepcopy(data)
 								stack2.append( res )
 
 								# Activate the sha3 branch
@@ -970,14 +970,14 @@ class EVM(EVMCore):
 								MyGlobals.solution_found = False
 
 								MyGlobals.s.push()
-								self.execute_one_block(ops,stack2,	pos+1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function,  jumpdepth, calldepth, function_hash, find_solution,  key )	
+								self.execute_one_block(ops,stack2,	pos+1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function,  jumpdepth, calldepth, function_hash, find_solution,  key )
 								MyGlobals.s.pop()
 								MyGlobals.search_condition_found = False
 
 								# Deactivate the sha3 branch
 								MyGlobals.in_sha3 -= 1
-								
-							# If values of the symbolic variable have not been defined	
+
+							# If values of the symbolic variable have not been defined
 							else:
 								if self.debug: print('In branch 2 \n')
 								shuffle(MyGlobals.st['caller'])
@@ -987,21 +987,21 @@ class EVM(EVMCore):
 									#replace the symbolic variable with a concrete variable
 									mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 									#find the keccak hash of the new concrete value
-									val = '' 
-									
+									val = ''
+
 									for i in range(addr//32):
-									
+
 										val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 									k = keccak_256()
 									k.update(codecs.decode(val, 'hex'))
 									digest = k.hexdigest()
-									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }	
+									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }
 									# Copy all the contents of the previous sha3 dict and sha3_values
 									sha3_dict2 = copy.deepcopy(sha3_dict)
 									sha3_values2 = copy.deepcopy(sha3_values)
 									sha3_dict2[mmemory[addr//2]['z3'].as_long()] = []
-									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)	
+									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)
 									sha3_values2[sm] = []
 									sha3_values2[sm].append(const_addr)
 
@@ -1009,9 +1009,9 @@ class EVM(EVMCore):
 									stack2 = copy.deepcopy(stack)
 									trace2 = copy.deepcopy(trace)
 									mmemory2 = copy.deepcopy(mmemory)
-									data2 = copy.deepcopy(data)	 
+									data2 = copy.deepcopy(data)
 									stack2.append( res )
-																	
+
 									# Activate the sha3 branch
 									MyGlobals.in_sha3 +=1
 									MyGlobals.solution_found = False
@@ -1038,17 +1038,17 @@ class EVM(EVMCore):
 								print('\033[91m[-] No such symbolic variable found \033[0m', '\n')
 								exit(0)
 
-							# If values of the symbolic variable have already been defined	
+							# If values of the symbolic variable have already been defined
 							if sm in sha3_values:
 								if self.debug: print('In branch 3 \n')
 								const_addr = sha3_values[sm][0]
 								mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 
 								#find the keccak hash of the new concrete value
-								val = '' 
-								
+								val = ''
+
 								for i in range(addr//32):
-								
+
 									val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 								k = keccak_256()
@@ -1066,7 +1066,7 @@ class EVM(EVMCore):
 								stack2 = copy.deepcopy(stack)
 								trace2 = copy.deepcopy(trace)
 								mmemory2 = copy.deepcopy(mmemory)
-								data2 = copy.deepcopy(data)	 
+								data2 = copy.deepcopy(data)
 								stack2.append( res )
 
 								# Activate the sha3 branch
@@ -1082,7 +1082,7 @@ class EVM(EVMCore):
 								# Deactivate the sha3 branch
 								MyGlobals.in_sha3 -= 1
 
-							# If values of the symbolic variable have not been defined	
+							# If values of the symbolic variable have not been defined
 							else:
 								if self.debug: print('In branch 4 \n')
 								# Generate a completely random input only if key is not more than 2
@@ -1096,32 +1096,32 @@ class EVM(EVMCore):
 									print('\033[91m[-] Something wrong.... Asking symbolic variable for input in third call \033[0m', '\n')
 									return
 								lists = []
-								
+
 								for each_value in MyGlobals.st['caller']:
 									lists.append(int(each_value,16))
 								lists.append(rand_input)
-								# shuffle(lists)	
-								for value in lists:	
+								# shuffle(lists)
+								for value in lists:
 									const_addr = value
 									found = False
 									#replace the symbolic variable with a concrete variable
 									mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 									#find the keccak hash of the new concrete value
-									val = '' 
-									
+									val = ''
+
 									for i in range(addr//32):
-									
+
 										val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 									k = keccak_256()
 									k.update(codecs.decode(val, 'hex'))
 									digest = k.hexdigest()
-									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }	
+									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }
 									# Copy all the contents of the previous sha3 dict and sha3_values
 									sha3_dict2 = copy.deepcopy(sha3_dict)
 									sha3_values2 = copy.deepcopy(sha3_values)
 									sha3_dict2[mmemory[addr//2]['z3'].as_long()] = []
-									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)	
+									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)
 									sha3_values2[sm] = []
 									sha3_values2[sm].append(const_addr)
 
@@ -1129,9 +1129,9 @@ class EVM(EVMCore):
 									stack2 = copy.deepcopy(stack)
 									trace2 = copy.deepcopy(trace)
 									mmemory2 = copy.deepcopy(mmemory)
-									data2 = copy.deepcopy(data)	 
+									data2 = copy.deepcopy(data)
 									stack2.append( res )
-																
+
 									# Activate the sha3 branch
 									MyGlobals.in_sha3 += 1
 									MyGlobals.solution_found = False
@@ -1143,13 +1143,13 @@ class EVM(EVMCore):
 
 
 									# Deactivate the sha3 branch
-									MyGlobals.in_sha3 -= 1		
+									MyGlobals.in_sha3 -= 1
 
-							
-					# If the memory location of sha3 is already defined		
+
+					# If the memory location of sha3 is already defined
 					else:
 						text = str(mmemory[self.get_value(s1)]['z3'])
-						
+
 						if 'CALLER' in str(mmemory[self.get_value(s1)]['z3']):
 
 							# Find the exact name of symbolic variable.
@@ -1168,10 +1168,10 @@ class EVM(EVMCore):
 								if self.debug: print('In branch 5 \n')
 								const_addr = sha3_values[sm][0]
 								mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
-								val = '' 
-								
+								val = ''
+
 								for i in range(addr//32):
-								
+
 									val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 								k = keccak_256()
@@ -1187,7 +1187,7 @@ class EVM(EVMCore):
 								stack2 = copy.deepcopy(stack)
 								trace2 = copy.deepcopy(trace)
 								mmemory2 = copy.deepcopy(mmemory)
-								data2 = copy.deepcopy(data)	 
+								data2 = copy.deepcopy(data)
 								stack2.append( res )
 
 								# Activate the sha3 branch
@@ -1202,7 +1202,7 @@ class EVM(EVMCore):
 								# Deactivate the sha3 branch
 								MyGlobals.in_sha3 -= 1
 
-							# If values of the symbolic variable have not been defined	
+							# If values of the symbolic variable have not been defined
 							else:
 								if self.debug: print('In branch 6 \n')
 								const_addr = sha3_dict[mmemory[addr//2]['z3'].as_long()][0]
@@ -1213,21 +1213,21 @@ class EVM(EVMCore):
 									#replace the symbolic variable with a concrete variable
 									mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 									#find the keccak hash of the new concrete value
-									val = '' 
-									
+									val = ''
+
 									for i in range(addr//32):
-									
+
 										val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 									k = keccak_256()
 									k.update(codecs.decode(val, 'hex'))
 									digest = k.hexdigest()
-									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }	
+									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }
 									# Copy all the contents of the previous sha3 dict and sha3_values
 									sha3_dict2 = copy.deepcopy(sha3_dict)
 									sha3_values2 = copy.deepcopy(sha3_values)
 									sha3_dict2[mmemory[addr//2]['z3'].as_long()] = []
-									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)	
+									sha3_dict2[mmemory[addr//2]['z3'].as_long()].append(const_addr)
 									sha3_values2[sm] = []
 									sha3_values2[sm].append(const_addr)
 
@@ -1235,9 +1235,9 @@ class EVM(EVMCore):
 									stack2 = copy.deepcopy(stack)
 									trace2 = copy.deepcopy(trace)
 									mmemory2 = copy.deepcopy(mmemory)
-									data2 = copy.deepcopy(data)	 
+									data2 = copy.deepcopy(data)
 									stack2.append( res )
-																	
+
 									# Activate the sha3 branch
 									MyGlobals.in_sha3 += 1
 									MyGlobals.solution_found = False
@@ -1252,7 +1252,7 @@ class EVM(EVMCore):
 
 								else:
 									print('\033[91m[-] The symbolic variable caller cannot take this value \033[0m')
-									return 				
+									return
 
 						if 'input' in str(mmemory[self.get_value(s1)]['z3']):
 
@@ -1267,17 +1267,17 @@ class EVM(EVMCore):
 								print('\033[91m[-] No such symbolic variable found \033[0m', '\n')
 								exit(0)
 
-							# If values of the symbolic variable have already been defined	
+							# If values of the symbolic variable have already been defined
 							if sm in sha3_values:
 								if self.debug: print('In branch 7 \n')
 								const_addr = sha3_values[sm][0]
 								mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 
 								#find the keccak hash of the new concrete value
-								val = '' 
-								
+								val = ''
+
 								for i in range(addr//32):
-								
+
 									val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 								k = keccak_256()
@@ -1288,13 +1288,13 @@ class EVM(EVMCore):
 								# Copy all the contents of the previous sha3 dict and sha3_values
 								sha3_dict2 = copy.deepcopy(sha3_dict)
 								sha3_values2 = copy.deepcopy(sha3_values)
-								
+
 								# Copy all the datastructures
 								storage2 = copy.deepcopy(storage)
 								stack2 = copy.deepcopy(stack)
 								trace2 = copy.deepcopy(trace)
 								mmemory2 = copy.deepcopy(mmemory)
-								data2 = copy.deepcopy(data)	 
+								data2 = copy.deepcopy(data)
 								stack2.append( res )
 
 								# Activate the sha3 branch
@@ -1309,7 +1309,7 @@ class EVM(EVMCore):
 								# Deactivate the sha3 branch
 								MyGlobals.in_sha3 -= 1
 
-							# If values of the symbolic variable have not been defined	
+							# If values of the symbolic variable have not been defined
 							else:
 								if self.debug: print('In branch 8 \n')
 								# Generate a completely random input only if key is not more than 2
@@ -1321,27 +1321,27 @@ class EVM(EVMCore):
 								else:
 									print('\033[91m[-] Something wrong.... Asking symbolic variable for input in third call \033[0m', '\n')
 									return
-								
+
 								lists = []
 								lists.append(rand_input)
 								lists.append(sha3_dict[mmemory[addr//2]['z3'].as_long()][0])
-								
+
 
 								for each_value in lists:
 									const_addr = each_value
 									#replace the symbolic variable with a concrete variable
 									mmemory[self.get_value(s1)]['z3'] = BitVecVal(const_addr, 256)
 									#find the keccak hash of the new concrete value
-									val = '' 
-									
+									val = ''
+
 									for i in range(addr//32):
-									
+
 										val += '%064x' % self.get_value(mmemory[self.get_value(s1) + i*32])
 
 									k = keccak_256()
 									k.update(codecs.decode(val, 'hex'))
 									digest = k.hexdigest()
-									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }	
+									res = {'type':'constant','step':ops[pos]['id'], 'z3':BitVecVal(int(digest,16), 256) }
 									# Copy all the contents of the previous sha3 dict and sha3_values
 									sha3_dict2 = copy.deepcopy(sha3_dict)
 									sha3_values2 = copy.deepcopy(sha3_values)
@@ -1352,9 +1352,9 @@ class EVM(EVMCore):
 									stack2 = copy.deepcopy(stack)
 									trace2 = copy.deepcopy(trace)
 									mmemory2 = copy.deepcopy(mmemory)
-									data2 = copy.deepcopy(data)	 
+									data2 = copy.deepcopy(data)
 									stack2.append( res )
-																	
+
 									# Activate the sha3 branch
 									MyGlobals.in_sha3 += 1
 									MyGlobals.solution_found = False
@@ -1362,17 +1362,17 @@ class EVM(EVMCore):
 									MyGlobals.s.push()
 									self.execute_one_block(ops,stack2,	pos+1, 	trace2, storage2, 	mmemory2, data2, configurations,  sha3_dict2, sha3_values2, search_op, search_function,  jumpdepth, calldepth, function_hash, find_solution,  key )
 									MyGlobals.s.pop()
-									MyGlobals.search_condition_found = False	
+									MyGlobals.search_condition_found = False
 
 									# Deactivate the sha3 branch
-									MyGlobals.in_sha3 -= 1				
-					
+									MyGlobals.in_sha3 -= 1
+
 
 					if MyGlobals.in_sha3 == 0:
-						MyGlobals.solution_found = False		
+						MyGlobals.solution_found = False
 					return
 
 				# If nothing from above then stop
 				else:
 					print('\033[95m[-] Unknown %s on line %x \033[0m' % (si['o'],ops[pos]['id']) )
-					return 
+					return

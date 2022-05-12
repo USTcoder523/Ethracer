@@ -9,7 +9,7 @@ from check_execute import WHBFinder
 from values import MyGlobals, initialize_params
 import misc
 from misc import get_func_hashes, print_function_name, find_blockNumber, getFuncHashes, print_function_name, print_nodes, print_nodes_list, print_notimplemented, remove0x
-from os import path 
+from os import path
 from itertools import product
 import sys
 import optimize_nodes
@@ -22,7 +22,7 @@ if 'ETHEREUM_ENDPOINT' not in os.environ or os.environ['ETHEREUM_ENDPOINT'] == "
 	os.environ['ETHEREUM_ENDPOINT'] = "http://127.0.0.1:8666"
 
 
-# Initialize global parameters from the file global_params. These values 
+# Initialize global parameters from the file global_params. These values
 # can be overridden by providing inputs using arguments.
 def initParams():
 
@@ -54,7 +54,7 @@ def initParams():
 	try:
 		MyGlobals.ONE_HB_TIMEOUT = global_params.ONE_HB_TIMEOUT
 	except AttributeError:
-		pass		
+		pass
 
 
 # Initialize all datastructures which are required for analysis.
@@ -71,31 +71,31 @@ def initialize_datastructures():
 # Analyze the given contrat for EO bugs.
 def exec_contract(sol_file, c_address, owner, is_binary=False):
 	'''
-	First it calls the wHBFinder object to obtain concrete events 
-	and wHB relations between them. These events are then fuzzed to 
+	First it calls the wHBFinder object to obtain concrete events
+	and wHB relations between them. These events are then fuzzed to
 	find EO bugs.
 	'''
-	
+
 	debug = MyGlobals.debug
 	debug1 = MyGlobals.debug1
 
 	initialize_datastructures()
-	
+
 	c_address = Web3.toChecksumAddress(c_address)
 	if len(c_address) < 1:  print('\033[91m[-] Contract address is incorrect %s \033[0m' % c_address )
 
 	# find the compiled code from the local blockchain.
 	web3 = Web3(Web3.HTTPProvider(os.environ['ETHEREUM_ENDPOINT']))
-	if not is_binary: 
+	if not is_binary:
 		compiled_code = web3.eth.getCode(c_address)
 	else:
 		with open(sol_file, 'r') as f:
 			compiled_code = f.read()
 		compiled_code = bytearray.fromhex(compiled_code)
-	
+
 
 	# get the function hashes from the Solidity code
-	if not os.path.isfile(sol_file):  
+	if not os.path.isfile(sol_file):
 		print('\033[91m[-] Solidity source file %s does NOT exist\033[0m' % sol_file )
 		funclist1 = []
 	else:
@@ -110,7 +110,7 @@ def exec_contract(sol_file, c_address, owner, is_binary=False):
 	funclist2 = []
 	for f in funclist:
 		fnd = False
-		for f1 in funclist1: 
+		for f1 in funclist1:
 			if f1[1]==f[1]:
 				funclist2.append( (f1[0],f1[1]) )
 				fnd = True
@@ -138,15 +138,16 @@ def exec_contract(sol_file, c_address, owner, is_binary=False):
 	initialize_params(c_address)
 
 	# Append owners to the caller array which holds possible adddresses of caller field.
-	MyGlobals.st['caller'].append(owner.lstrip('0x'))
+	o = owner.lstrip('0x')
+	MyGlobals.st['caller'].append(o if len(o) > 0 else '0')
 
-	print('\nExecuting at blocknumber: \033[92m%d\033[0m'%(MyGlobals.STORAGE_AT_BLOCK))  
+	print('\nExecuting at blocknumber: \033[92m%d\033[0m'%(MyGlobals.STORAGE_AT_BLOCK))
 
 	code = compiled_code.replace('\n','').replace('\r','').replace(' ','').lstrip('0x')
 	time0 = datetime.datetime.now()
 	MyGlobals.Time_checkpoint_HB = datetime.datetime.now()
 	c_address = Web3.toChecksumAddress(c_address)
-	
+
 	# Delegate static analysis of the bytecode to wHBFinder.
 	whbFinderInstance = WHBFinder(code, c_address, debug, funclist2, MyGlobals.read_from_blockchain)
 	node_list, simplified_hb = whbFinderInstance.check_one_contract()
@@ -174,7 +175,7 @@ def exec_contract(sol_file, c_address, owner, is_binary=False):
 	time1 = datetime.datetime.now()
 
 	# criteria is used to differetiate the buggy traces 0: balances at the end 1: storage at the end
-	if not args.balances: 
+	if not args.balances:
 		criteria = global_params.CHECK_FOR_BALANCE
 
 	check_all_traces( [], 4, new_nodes_list, new_simplified_hb, [], balances, c_address, contract_bytecode, disasm, criteria, debug1, MyGlobals.read_from_blockchain, MyGlobals.STORAGE_AT_BLOCK, time1, False)
@@ -213,16 +214,16 @@ args = parser.parse_args()
 if args.debug:
 	MyGlobals.debug = True
 if args.debugfuzzer:
-	MyGlobals.debug1 = True    
+	MyGlobals.debug1 = True
 if args.printfunc:
-	funclist = getFuncHashes(args.printfunc[0], MyGlobals.debug) 
+	funclist = getFuncHashes(args.printfunc[0], MyGlobals.debug)
 	print_function_name(funclist)
 if args.nsolutions:
 	MyGlobals.max_solutions = int(args.nsolutions[0])
 if args.maxTimeHB:
-	MyGlobals.ONE_HB_TIMEOUT = int(args.maxTimeHB[0])	
+	MyGlobals.ONE_HB_TIMEOUT = int(args.maxTimeHB[0])
 if args.balances:
-	MyGlobals.criteria = 0       
+	MyGlobals.criteria = 0
 if args.blockchain:
 	MyGlobals.read_from_blockchain = True
 if args.atblock:
@@ -235,4 +236,4 @@ if args.checkone:
 		print("Please provide the owner addres\n")
 		exit(0)
 
-	exit(0)	
+	exit(0)

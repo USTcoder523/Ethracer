@@ -26,7 +26,7 @@ class EVMCoreHelper:
 	def power(self, y, x, n):
 		if x == 0: #base case
 			return 1
-		elif (x%2==0): #x even 
+		elif (x%2==0): #x even
 			return self.power((y*y)%n,x//2,n)%n
 		else: #x odd
 			return (y*self.power((y*y)%n,x//2,n))%n
@@ -38,14 +38,14 @@ class EVMCoreHelper:
 
 				if not self.is_undefined(mmemory[i]):
 
-					if self.is_undefined( value ): 
+					if self.is_undefined( value ):
 						mmemory[i]['type'] = 'undefined'
 						continue
 
 					obytes = (i - addr);
 					old_value = mmemory[i]['z3']
 					new_value = ( old_value & (2**(8*obytes) - 1) ) ^ (value['z3'] << (8*obytes) )
-					
+
 					if new_value == 0: del mmemory[i]
 					else: mmemory[i]['z3'] = new_value
 
@@ -55,7 +55,7 @@ class EVMCoreHelper:
 
 				if not self.is_undefined(mmemory[i]):
 
-					if self.is_undefined( value ): 
+					if self.is_undefined( value ):
 						mmemory[i]['type'] = 'undefined'
 						continue
 
@@ -70,22 +70,22 @@ class EVMCoreHelper:
 		mmemory[addr] = value;
 
 
-# EVMCore simulates execution of each instruction and generates symbolic constraints using the actual EVM semantics. 
+# EVMCore simulates execution of each instruction and generates symbolic constraints using the actual EVM semantics.
 
 class EVMCore(EVMCoreHelper):
 	'''
 	* Implements logic to handle each instruction in defferent phases of static analysis.
-		
+
 		1) Search enhance phase with global storage not symbolic.
 		2) Search enhance phase with global storage symbolic.
 		2) Actual event finding phase.
-	
+
 	* Propogates rules differently for different phases for each instruction.
 	* Constructs datastructure of R/W locations of each function for search enhance phase.
 
 	'''
 
-	# Private function for processing instructions involving operation on a single input argument.	
+	# Private function for processing instructions involving operation on a single input argument.
 	def _unary(self, o1, step, op='NONE' ):
 
 		if self.is_undefined(o1): return {'type':'undefined','step':step}
@@ -96,9 +96,9 @@ class EVMCore(EVMCoreHelper):
 		else:
 			print('did not process unary operation %s ' % op )
 			print(o1)
-			return {'type':'undefined','step':step} 
+			return {'type':'undefined','step':step}
 
-		return {'type':'constant','step':step, 'z3': z3} 
+		return {'type':'constant','step':step, 'z3': z3}
 
 	# Private function for processing instructions involving operations on two input arguments.
 	def _binary(self, o1, o2 , step, op='NONE'):
@@ -108,13 +108,13 @@ class EVMCore(EVMCoreHelper):
 			val = simplify(o1['z3']).as_long()
 			if op in ['MUL','AND','DIV','SDIV'] and 0 == val: return {'type':'constant','step':step, 'z3':BitVecVal(0,256) }
 			if op in ['XOR','ADD'] and 0 == val: return o2
-			
+
 		if self.is_fixed(o2):
 			val = simplify(o2['z3']).as_long()
 			if op in ['MUL','AND','DIV','SDIV'] and 0 == val: return {'type':'constant','step':step, 'z3':BitVecVal(0,256) }
 			if op in ['XOR','ADD'] and 0 == val: return o1
 
-		# If some of the operands is undefined then the result should be undefined 
+		# If some of the operands is undefined then the result should be undefined
 		if self.is_undefined(o1) or self.is_undefined(o2): return {'type':'undefined','step':step}
 
 
@@ -126,22 +126,22 @@ class EVMCore(EVMCoreHelper):
 		elif op =='OR'  : z3 = z1 | z2
 		elif op =='XOR' : z3 = z1 ^ z2
 		elif op =='ADD' : z3 = z1 + z2
-		elif op =='SUB' : z3 = z1 - z2 
-		elif op =='EXP' : 
+		elif op =='SUB' : z3 = z1 - z2
+		elif op =='EXP' :
 			if is_bv_value(z1) and is_bv_value(z2):
 				z3 = BitVecVal( self.power (z1.as_long(), z2.as_long(), 2**256), 256 )
-			else: 
+			else:
 				return {'type':'undefined','step':step}
-		elif op =='DIV' : z3 = UDiv(z1,z2) 
-		elif op =='SDIV': z3 = z1/z2 
+		elif op =='DIV' : z3 = UDiv(z1,z2)
+		elif op =='SDIV': z3 = z1/z2
 		elif op =='MOD' : z3 = URem(z1,z2)
-		elif op =='SMOD' : z3 = z1 % z2 
-		elif op =='MUL' : z3 = z1 * z2 
+		elif op =='SMOD' : z3 = z1 % z2
+		elif op =='MUL' : z3 = z1 * z2
 		elif op =='GT'  : z3 = If(UGT(z1, z2), BitVecVal(1, 256), BitVecVal(0, 256))
 		elif op =='SGT' : z3 = If(z1 > z2, BitVecVal(1, 256), BitVecVal(0, 256))
 		elif op =='LT'  : z3 = If(ULT(z1, z2), BitVecVal(1, 256), BitVecVal(0, 256))
 		elif op =='SLT' : z3 = If(z1 < z2, BitVecVal(1, 256), BitVecVal(0, 256))
-		elif op =='EQ'  : 
+		elif op =='EQ'  :
 			global last_eq_step, last_eq_func
 
 			# May reveal function calls
@@ -151,21 +151,21 @@ class EVMCore(EVMCoreHelper):
 				for function_pair in MyGlobals.functions:
 					if a==(int(function_pair[1], 16)):
 						MyGlobals.last_eq_func = z1.as_long()
-						MyGlobals.last_eq_step = step      
-			
+						MyGlobals.last_eq_step = step
+
 			z3 = If(z1 == z2, BitVecVal(1, 256), BitVecVal(0, 256))
-		
+
 		else:
 			print('did not process binary operation %s  ' % op)
 			print(o1)
 			print(o2)
-			return {'type':'undefined','step':step} 
+			return {'type':'undefined','step':step}
 
-		return {'type':'constant','step':step, 'z3': z3} 
+		return {'type':'constant','step':step, 'z3': z3}
 
 
 
-	# Private function for processing instrunctions involving operations on three input arguments.	
+	# Private function for processing instrunctions involving operations on three input arguments.
 	def _ternary(self, o1, o2 , o3, step, op='NONE'):
 
 		if o3['type'] == 'constant' and is_bv_value(simplify(o3['z3'])) and 0 == simplify(o3['z3']).as_long(): return {'type':'constant','step':step, 'z3':BitVecVal(0,256) }
@@ -181,11 +181,11 @@ class EVMCore(EVMCoreHelper):
 			print(o1)
 			print(o2)
 			print(o3)
-			return {'type':'undefined','step':step} 
+			return {'type':'undefined','step':step}
 
 
 
-	# Public function which facillitates execution of each instruction and genration of symbolic constraints.		
+	# Public function which facillitates execution of each instruction and genration of symbolic constraints.
 	def execute(self, code, stack, pos, storage, mmemory, data, trace, calldepth, function_hash, actual_key, search_enhance, debug, read_from_blockchain  ):
 
 		# Stop the search once it exceeds timeout
@@ -218,19 +218,19 @@ class EVMCore(EVMCoreHelper):
 			if 'total' in MyGlobals.notimplemented_ins:
 				MyGlobals.notimplemented_ins['total']+=1
 			else:
-				MyGlobals.notimplemented_ins['total']=1		
-					
+				MyGlobals.notimplemented_ins['total']=1
+
 
 		key = 0
 		if actual_key in [1, 4]: key = 1
 		if actual_key in [2, 3]: key = 2
 
 		if op not in allops:
-			print('Unknown operation %s at pos %x' % (code[pos][op],pos) )
+			print('Unknown operation %s at pos %x' % (code[pos]['op'],pos) )
 			return pos,True
 
 		# check if stack has enough elements
-		if allops[op][1] > len(stack): 
+		if allops[op][1] > len(stack):
 			if debug: print('Not enough entries in the stack to execute the operation %8s  at step %x: required %d, provided %d' % (op,code[pos]['id'], allops[op][1], len(stack)) )
 			return pos, True
 		start_stack_size = len(stack)
@@ -241,12 +241,12 @@ class EVMCore(EVMCoreHelper):
 		args = []
 		if op.find('SWAP') < 0 and op.find('DUP') < 0 and op not in ['JUMPI']:
 			for i in range( allops[op][1] ): args.append( stack.pop() )
-		
+
 
 		# all unary
-		if op in ['ISZERO','NOT']: 
+		if op in ['ISZERO','NOT']:
 			stack.append( self._unary ( args[0] ,step, op ) )
-			
+
 		# all binary except SIGNEXTEND
 		elif op in ['ADD','MUL','SUB','DIV','SDIV','MOD','SMOD','EXP','AND','OR','XOR', 'LT','GT','SLT','SGT','EQ']:
 			stack.append( self._binary (  args[0] , args[1] , step , op ) )
@@ -257,7 +257,7 @@ class EVMCore(EVMCoreHelper):
 
 		elif op == 'SIGNEXTEND':
 
-			if not self.is_fixed(args[0]) or not self.is_fixed(args[1]): 
+			if not self.is_fixed(args[0]) or not self.is_fixed(args[1]):
 				stack.append( {'type':'undefined','step':step} )
 
 			else:
@@ -291,23 +291,23 @@ class EVMCore(EVMCoreHelper):
 				if 'sha3_offset' in MyGlobals.notimplemented_ins:
 					MyGlobals.notimplemented_ins['sha3_offset']+=1
 				else:
-					MyGlobals.notimplemented_ins['sha3_offset']=1		
+					MyGlobals.notimplemented_ins['sha3_offset']=1
 
 
 			res = {'type':'undefined','step':step}
 
 			changed_offset = exact_address
-		
+
 			if (exact_offset - exact_address)//32 >= 2 : changed_offset = exact_offset//2
-		
+
 			if exact_address >= 0 and exact_offset >= 0:
-		
+
 				if (exact_offset % 32) == 0 :     # for now, can deal only with offsets divisible by 32
 					val = ''
 					all_good = True
 					sha3val = 0
 					for i in range(exact_offset//32):
-						if (exact_address + i*32) not in mmemory or not self.is_fixed(mmemory[exact_address+i*32]): 
+						if (exact_address + i*32) not in mmemory or not self.is_fixed(mmemory[exact_address+i*32]):
 							all_good = False
 							break
 						val += '%064x' % self.get_value(mmemory[exact_address + i*32])
@@ -321,9 +321,9 @@ class EVMCore(EVMCoreHelper):
 						digest = k.hexdigest()
 						res = {'type':'constant','step':step, 'z3':BitVecVal(int(digest,16), 256) }
 						sha3val = int(digest,16)
-						
 
-					else: 
+
+					else:
 						# for statistics
 						if (not search_enhance):
 							if exact_address==-1:
@@ -336,8 +336,8 @@ class EVMCore(EVMCoreHelper):
 							temp_key = remove0x(hex(mmemory[changed_offset]['z3'].as_long()).rstrip('L'))
 							if not 'SHA3'+'-'+str(step)+'-'+function_hash in MyGlobals.sha3vardata:
 								MyGlobals.sha3vardata['SHA3'+'-'+str(step)+'-'+function_hash] = []
-								MyGlobals.sha3vardata['SHA3'+'-'+str(step)+'-'+function_hash].append(temp_key)	
-							
+								MyGlobals.sha3vardata['SHA3'+'-'+str(step)+'-'+function_hash].append(temp_key)
+
 							else:
 								if not temp_key in MyGlobals.sha3vardata['SHA3'+'-'+str(step)+'-'+function_hash]:
 									MyGlobals.sha3vardata['SHA3'+'-'+str(step)+'-'+function_hash].append(temp_key)
@@ -345,8 +345,8 @@ class EVMCore(EVMCoreHelper):
 
 						stack.append(args[1])
 						stack.append(args[0])
-						return pos, False    
-			
+						return pos, False
+
 			if search_enhance and is_bv_value(simplify(mmemory[changed_offset]['z3'])):
 				temp_key = remove0x(hex(mmemory[changed_offset]['z3'].as_long()).rstrip('L'))
 				if not sha3val in MyGlobals.sha3vardata:
@@ -356,7 +356,7 @@ class EVMCore(EVMCoreHelper):
 				else:
 					if not temp_key in MyGlobals.sha3vardata[sha3val]:
 						MyGlobals.sha3vardata[sha3val].append(temp_key)
-			
+
 
 
 			stack.append( res )
@@ -378,7 +378,7 @@ class EVMCore(EVMCoreHelper):
 		# only if they are selected to get one
 		# otherwise, below, they will get fixed value (BitVecVal) as specified
 		elif op in MyGlobals.symbolic_vars:
-			stack.append( {'type':'constant','step':step, 'z3': BitVec(op+'-'+str(calldepth)+'-'+function_hash,256) } ) 
+			stack.append( {'type':'constant','step':step, 'z3': BitVec(op+'-'+str(calldepth)+'-'+function_hash,256) } )
 
 		elif op == 'NUMBER':        stack.append( {'type':'constant','step':step, 'z3': BitVecVal(int(get_params('block_number',''),16), 256)} )
 		elif op == 'GASLIMIT':      stack.append( {'type':'constant','step':step, 'z3': BitVecVal(int(get_params('gas_limit',''),16), 256)} )
@@ -398,7 +398,7 @@ class EVMCore(EVMCoreHelper):
 		elif op.find('LOG') >= 0:   pass
 		elif op == 'CODECOPY':      pass
 
-		elif op == 'JUMPDEST':      
+		elif op == 'JUMPDEST':
 			return pos+1, False
 
 		elif op in ['STOP','RETURN','REVERT', 'INVALID']: 	halt = True
@@ -409,7 +409,7 @@ class EVMCore(EVMCoreHelper):
 					MyGlobals.funcvardata[function_hash] = {}
 					MyGlobals.funcvardata[function_hash]['bal'] = []
 					MyGlobals.funcvardata[function_hash]['bal'].append('W')
-					
+
 				else:
 					if not 'bal' in MyGlobals.funcvardata[function_hash]:
 						MyGlobals.funcvardata[function_hash]['bal'] = []
@@ -430,12 +430,12 @@ class EVMCore(EVMCoreHelper):
 				if addr == 0:
 					# If fallback function append 0 to the stack
 					if function_hash in ['11111111', '22222222']:
-						stack.append( {'type':'constant','step':step, 'z3':BitVecVal(0, 256) } )   
-					
-					else:         
+						stack.append( {'type':'constant','step':step, 'z3':BitVecVal(0, 256) } )
+
+					else:
 						stack.append( {'type':'constant','step':step, 'z3':BitVecVal(int(function_hash.ljust(64, '0'), 16), 256) } )
 
-			# If symmbolic variable does not exist, then create it  
+			# If symmbolic variable does not exist, then create it
 				else:
 
 					if ('data-'+str(key)+'-' + str(addr)+'-'+function_hash) not in data:
@@ -481,13 +481,13 @@ class EVMCore(EVMCoreHelper):
 
 
 				exact_address = addr
-				#Adding the accessed global variables to funcvardata 
+				#Adding the accessed global variables to funcvardata
 				if search_enhance:
 					if not function_hash in MyGlobals.funcvardata:
 						MyGlobals.funcvardata[function_hash] = {}
 						MyGlobals.funcvardata[function_hash]['bal'] = []
 						MyGlobals.funcvardata[function_hash]['bal'].append('W')
-						
+
 					else:
 						if not 'bal' in MyGlobals.funcvardata[function_hash]:
 							MyGlobals.funcvardata[function_hash]['bal'] = []
@@ -499,13 +499,13 @@ class EVMCore(EVMCoreHelper):
 
 			stack.append( {'type':'constant','step':step, 'z3':BitVec('call_at_step_'+str(step), 256) & 0x1} )     # assume the result of call can be any (True or False)
 
-		elif op == 'CALLDATACOPY': 
-			memaddr = args[0]  
+		elif op == 'CALLDATACOPY':
+			memaddr = args[0]
 			datapos = args[1]
 			length  = args[2]
 
 			if not self.is_fixed(memaddr) or not self.is_fixed( datapos ) or not self.is_fixed( length ):
-				if debug: 
+				if debug:
 					print('\033[95m[-] In CALLDATACOPY the memory address or datapos or length cannot be determined \033[0m' )
 					print(memaddr)
 					print(datapos)
@@ -536,7 +536,7 @@ class EVMCore(EVMCoreHelper):
 					MyGlobals.notimplemented_ins['codesize']+=1
 				else:
 					MyGlobals.notimplemented_ins['codesize']=1
-				
+
 		elif op == 'CALLCODE':          stack.append( {'type':'constant','step':step, 'z3':BitVecVal(0,256)} )
 		elif op == 'DELEGATECALL':      stack.append( {'type':'constant','step':step, 'z3':BitVecVal(0,256)} )
 		elif op == 'EXTCODESIZE':       stack.append( {'type':'constant','step':step, 'z3':BitVecVal(0,256)} )
@@ -556,7 +556,7 @@ class EVMCore(EVMCoreHelper):
 			if is_bv_value(addr):
 				exact_address = addr.as_long()
 				if exact_address in mmemory: res = copy.deepcopy(mmemory[exact_address])
-				else: 
+				else:
 					res = {'type':'constant','step':step, 'z3': BitVecVal(0, 256) }
 				stack.append( res )
 
@@ -567,7 +567,7 @@ class EVMCore(EVMCoreHelper):
 						MyGlobals.notimplemented_ins['mload_mem']+=1
 					else:
 						MyGlobals.notimplemented_ins['mload_mem']=1
-						
+
 				if debug:print('\033[95m[-] The MLOAD address on %x  cannot be determined\033[0m' % code[pos]['id'] )
 				return pos, True
 
@@ -613,7 +613,7 @@ class EVMCore(EVMCoreHelper):
 			ea = self.get_value(addr)
 			ev = self.get_value(value) % 256
 
-			if (ea//32)*32 not in mmemory: 
+			if (ea//32)*32 not in mmemory:
 				mmemory[(ea//32)*32] = {'type':'constant','step':step, 'z3':BitVecVal(ev << (31- (ea%32)), 256) }
 			elif self.is_fixed( mmemory[(ea//32)*32]['z3'] ):
 				v = self.get_value( mmemory[(ea//32)*32]['z3'] )
@@ -642,13 +642,13 @@ class EVMCore(EVMCoreHelper):
 			if search_enhance:
 				if is_bv_value(addr):
 					exact_address = addr.as_long()
-					#Adding the accessed global variables to funcvardata 
+					#Adding the accessed global variables to funcvardata
 
 					if not function_hash in MyGlobals.funcvardata:
 						MyGlobals.funcvardata[function_hash] = {}
 						MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')] = []
 						MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')].append('R')
-						
+
 					else:
 						if not hex(exact_address).lstrip('0x').rstrip('L') in MyGlobals.funcvardata[function_hash]:
 							MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')] = []
@@ -665,7 +665,7 @@ class EVMCore(EVMCoreHelper):
 								MyGlobals.funcvardata[function_hash][each].append('R')
 							else:
 								if not 'R' in MyGlobals.funcvardata[function_hash][each]:
-									MyGlobals.funcvardata[function_hash][each].append('R')    
+									MyGlobals.funcvardata[function_hash][each].append('R')
 
 				else:
 					for key, value in MyGlobals.sha3vardata.items():
@@ -675,20 +675,20 @@ class EVMCore(EVMCoreHelper):
 									MyGlobals.funcvardata[function_hash] = {}
 									MyGlobals.funcvardata[function_hash][each] = []
 									MyGlobals.funcvardata[function_hash][each].append('R')
-									
+
 								else:
 									if not each in  MyGlobals.funcvardata[function_hash]:
 										MyGlobals.funcvardata[function_hash][each] = []
 										MyGlobals.funcvardata[function_hash][each].append('R')
 									else:
 										if not 'R' in MyGlobals.funcvardata[function_hash][each]:
-											MyGlobals.funcvardata[function_hash][each].append('R')  
+											MyGlobals.funcvardata[function_hash][each].append('R')
 
 
 
 			if is_bv_value(addr):
-				exact_address = addr.as_long()           
-	 
+				exact_address = addr.as_long()
+
 				if exact_address in storage:
 					total_values = len(storage[exact_address])
 					if total_values == 0:
@@ -728,7 +728,7 @@ class EVMCore(EVMCoreHelper):
 					if 'sstore_addr' in MyGlobals.notimplemented_ins:
 						MyGlobals.notimplemented_ins['sstore_addr']+=1
 					else:
-						MyGlobals.notimplemented_ins['sstore_addr']=1			
+						MyGlobals.notimplemented_ins['sstore_addr']=1
 				return pos, True
 
 			t = copy.deepcopy( args[1] )
@@ -742,7 +742,7 @@ class EVMCore(EVMCoreHelper):
 						MyGlobals.funcvardata[function_hash] = {}
 						MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')] = []
 						MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')].append('W')
-						
+
 					else:
 						if not hex(exact_address).lstrip('0x').rstrip('L') in MyGlobals.funcvardata[function_hash]:
 							MyGlobals.funcvardata[function_hash][hex(exact_address).lstrip('0x').rstrip('L')] = []
@@ -760,7 +760,7 @@ class EVMCore(EVMCoreHelper):
 								MyGlobals.funcvardata[function_hash][each].append('W')
 							else:
 								if not 'W' in MyGlobals.funcvardata[function_hash][each]:
-									MyGlobals.funcvardata[function_hash][each].append('W')    
+									MyGlobals.funcvardata[function_hash][each].append('W')
 
 				else:
 					se_addr = simplify(addr['z3'])
@@ -773,16 +773,16 @@ class EVMCore(EVMCoreHelper):
 									MyGlobals.funcvardata[function_hash] = {}
 									MyGlobals.funcvardata[function_hash][each] = []
 									MyGlobals.funcvardata[function_hash][each].append('W')
-									
+
 								else:
 									if not each in  MyGlobals.funcvardata[function_hash]:
 										MyGlobals.funcvardata[function_hash][each] = []
 										MyGlobals.funcvardata[function_hash][each].append('W')
 									else:
 										if not 'W' in MyGlobals.funcvardata[function_hash][each]:
-											MyGlobals.funcvardata[function_hash][each].append('W') 			
-								
-			
+											MyGlobals.funcvardata[function_hash][each].append('W')
+
+
 			if is_bv_value( simplify(addr['z3']) ):
 				va = self.get_value( addr )
 				storage[va] = [t];
@@ -795,7 +795,7 @@ class EVMCore(EVMCoreHelper):
 					print ('\033[95m[-] In SSTORE the write address cannot be determined at step %x: \033[0m' % code[pos]['id'] )
 					print( addr )
 				return pos, True
-				
+
 		elif op == 'JUMP':
 
 			addr = args[0]
@@ -810,12 +810,12 @@ class EVMCore(EVMCoreHelper):
 
 				if debug: print('\033[95m[-] In JUMP the address cannot be determined \033[0m'  )
 				return pos, True
-		
+
 			jump_dest = self.get_value( addr )
 			if( jump_dest <= 0):
 				if debug: print('\033[95m[-] The JUMP destination is not a valid address : %x\033[0m'  % jump_dest )
 				return pos, True
-		
+
 			new_position= find_pos(code, jump_dest )
 
 			if( new_position < 0):
@@ -831,9 +831,9 @@ class EVMCore(EVMCoreHelper):
 		elif op == 'BYTE':
 			byte_no = args[0]
 			word    = args[1]
-			if self.is_undefined(word) or self.is_undefined(byte_no): 
+			if self.is_undefined(word) or self.is_undefined(byte_no):
 				res = {'type':'undefined','step':step}
-			else:                                           
+			else:
 				res = {'type':'constant','step':step, 'z3': (word['z3'] >> (8*(31-byte_no['z3'])) ) & 0xff }
 
 			stack.append( res )

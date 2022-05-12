@@ -2,11 +2,11 @@ from __future__ import print_function
 from parse_code import *
 import copy
 from values import get_params, set_params, initialize_params, print_params, MyGlobals, clear_globals, optimize_hb
-from execute_block import * 
-import z3 
+from execute_block import *
+import z3
 from z3 import *
 import datetime
-from os import path 
+from os import path
 import sys
 sys.path.insert(0, '../fuzzer')
 from check import *
@@ -35,13 +35,13 @@ class WHBFinder:
 		if not ('input' in key and not 'inputlength' in key):
 			if isinstance(value, str):
 				value = int(value, 16)
-			
-			else:		
+
+			else:
 				value = int(value.as_long())
 
 		if 'input' in key and not 'inputlength' in key:
 			key = 'tx_input'
-		
+
 		if 'CALLVALUE' in key:
 			if value > 10**19:
 				value = 10**19
@@ -71,10 +71,10 @@ class WHBFinder:
 
 		if 'BLOCKHASH' in key:
 			key = 'tx_blockhash'
-		
+
 		if 'BALANCE' in key:
 			if value > 10000:
-				value = 10000	
+				value = 10000
 			key = 'contract_balance'
 
 		if 'CALLER' in key:
@@ -83,17 +83,14 @@ class WHBFinder:
 			else:
 				value = (hex(value).rstrip('L')).lstrip('0x')
 
-			if value == '':
-				value = '7'*40
-
 			key = 'tx_caller'
 
-		if not ('input' in key and not 'inputlength' in key):	
-			if not isinstance(value, str) and (not value ==0):	
+		if not ('input' in key and not 'inputlength' in key):
+			if not isinstance(value, str) and (not value ==0):
 				value = hex(value).rstrip('L').lstrip('0x')
 
 			if value ==0:
-				value = '0'	
+				value = '0'
 
 		return key, value
 
@@ -110,17 +107,17 @@ class WHBFinder:
 		func_hash = {}
 		for f in self._funclist:
 			func_hash[f[1]]= f[0]
-	
+
 		print('Found functions:  \033[92m %d \033[0m\n' % len(self._funclist))
 
 		# Enhace the search by filtering out functions which are not necessary for analysis.
 		searchEnhancer = SearchEnhance()
 		impFunctionList, function_pairs_list  = searchEnhancer.stateChangingFunctions(self._funclist, self._contract_bytecode, self._contract_address, self._read_from_blockchain, self._debug)
-		
+
 		t2 = datetime.datetime.now()
 		if MyGlobals.ONE_CONTRACT_HB_TIMEOUT < int((t2 - MyGlobals.Time_checkpoint_HB).total_seconds()):
 			print('\n', '\033[91m-------Finding the HB relations timed out\033[0m', '\n')
-			return [], []	
+			return [], []
 		print('Important functions: \033[92m%3d  out of  %d  \033[0m' % (len(impFunctionList), len(self._funclist)) )
 		for f in impFunctionList:
 			print('%10s : %s' % (f, func_hash[f] if f in func_hash else f))
@@ -128,7 +125,7 @@ class WHBFinder:
 		for fp in function_pairs_list:
 			print('%10s , %10s  :  %s  , %s' % (fp[0],fp[1], func_hash[fp[0]] if fp[0] in func_hash else fp[0], func_hash[fp[1]] if fp[1] in func_hash else fp[1]))
 
-		# Analyze each function pair individually. 	
+		# Analyze each function pair individually.
 		cnt = 0
 		for pair in function_pairs_list:
 			if pair[0]!=pair[1]:
@@ -140,7 +137,7 @@ class WHBFinder:
 				t1 = datetime.datetime.now()
 				cnt +=1
 				print('\nProcess %3d / %d pair ' % (cnt, len(function_pairs_list)))
-				
+
 				# find concrete events for each function pair.
 				solution =  self.check_one_function_on_execute(pair[0], pair[1], func_hash[pair[0]] if pair[0] in func_hash else pair[0], func_hash[pair[1]] if pair[1] in func_hash else pair[1])
 				solution_dict[(pair[0], pair[1])] = solution
@@ -149,13 +146,13 @@ class WHBFinder:
 				if MyGlobals.ONE_CONTRACT_HB_TIMEOUT < int((t2 - MyGlobals.Time_checkpoint_HB).total_seconds()):
 					print('\n', '\033[91m-------Finding the HB relations timed out\033[0m', '\n')
 					break
-		
+
 		b = datetime.datetime.now()
 		print('Time for HB pairs: ', b-a, '\n', '--'*50, '\n' )
 
 		# Final unoptimized events.
 		node_dict, temp_node_list, simplified_hb = self.find_nodes(function_pairs_list, impFunctionList, solution_dict)
-		return temp_node_list, simplified_hb	
+		return temp_node_list, simplified_hb
 
 
 	# Responsible for checking wHB relationship for one function pair
@@ -182,12 +179,12 @@ class WHBFinder:
 			evmInstance.run_one_check(ops, 1)
 
 		elif function1 == 'noHB':
-			print('Function 2 should be noHB in any case \n')	
+			print('Function 2 should be noHB in any case \n')
 			return {}
-		else:	
+		else:
 			evmInstance = EVM(1, MyGlobals.max_jumpdepth_in_normal_search, False, self._contract_address, function1, function2, False, self._debug, self._read_from_blockchain)
 			evmInstance.run_one_check(ops, 1)
-		
+
 		soldict = {}
 
 		# Get the concrete values of event fields if static analysis finds wHB relation for an event pair.
@@ -205,7 +202,7 @@ class WHBFinder:
 						if 'inputlength' in key or not 'input-' in key:
 							convert = False
 
-					if convert:		
+					if convert:
 						if function1 in key:
 							if not function1 in mydict:
 								mydict[function1] = []
@@ -224,30 +221,30 @@ class WHBFinder:
 
 							else:
 								key, value = self.changeContext(key, value)
-								mydict[function2].append((key, value))	
+								mydict[function2].append((key, value))
 
 
 				soldict[i] = mydict
-			
+
 			print_solution(function1, function2, fn1, fn2, soldict)
 		else:
 			print('\033[91m[-] No HB found for %s , %s  : %s , %s\033[0m ' % (fn1, fn2, function1, function2) )
 
-		if MyGlobals.stop_search: 
+		if MyGlobals.stop_search:
 			return soldict
 
 		return {}
 
 	# utility function which extracts the final nodes/events and their simplified HB relations
 	def find_nodes(self, function_pairs_list, funclist, solution_dict):
-		
-		functionsHBList = []		
+
+		functionsHBList = []
 		for pair in function_pairs_list:
 			if (pair[0], pair[1]) in MyGlobals.solution_dict:
-				
+
 				if not pair[0] in functionsHBList:
 					functionsHBList.append(pair[0])
-				
+
 				if not pair[1] in functionsHBList:
 					functionsHBList.append(pair[1])
 
@@ -259,20 +256,20 @@ class WHBFinder:
 			solution_list =  self.check_one_function_on_execute(function, 'noHB', function, 'noHB')
 			solution_dict[(function, 'noHB')] = solution_list
 
-		# Solution dict contains the entire HB relation details 
+		# Solution dict contains the entire HB relation details
 
 		# Construct a datastructure which stores all the nodes.
 		temp_node_list = []
 		node_dict = {}
 		hb_list = []
 		simplified_hb = []
-		
+
 		for each_relation, solution_nodes in solution_dict.items():
 
 			for index, node in solution_nodes.items():
 
 				for fhash, fctx in node.items():
-					
+
 					found = False
 					for key, value in node_dict.items():
 						if value == {fhash:fctx}:
@@ -289,29 +286,29 @@ class WHBFinder:
 						node_dict[len(temp_node_list)-1] = {fhash:fctx}
 
 			if not each_relation[1] == 'noHB':
-				
+
 				for index, node in solution_nodes.items():
 					pair = ()
 					reverse = False
 					first = True
 					for fhash, fctx in node.items():
 						if each_relation[1] == fhash and first:
-							reverse = True	
-						first = False	
+							reverse = True
+						first = False
 						pair += (list(node_dict.keys())[list(node_dict.values()).index({fhash:fctx})] ,)
-		
+
 					if reverse:
 						hb_list.append((pair[1], pair[0]))
 					else:
-						hb_list.append(pair)	
+						hb_list.append(pair)
 
-					simplified_hb = optimize_hb(hb_list)	
+					simplified_hb = optimize_hb(hb_list)
 
 		# Construct a hb list of pairs of nodes in HB
-		
+
 		print_nodes(node_dict)
 
-		if self._debug: 
+		if self._debug:
 			print('List of nodes going to the fuzzer\n')
 			for each in temp_node_list:
 				print(each, '\n')

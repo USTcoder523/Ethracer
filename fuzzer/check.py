@@ -3,7 +3,7 @@ from sys import *
 from op_list import *
 from op_parse import *
 from op_exec import get_storage_value, get_params, set_params, clear_params, print_stack, print_storage, execute, print_balances, get_balances, same_balance, send_ether, st
-from op_exec import print_balance_difference, save_state, same_state 
+from op_exec import print_balance_difference, save_state, same_state
 import glob
 import os
 import time
@@ -28,6 +28,8 @@ ONE_CONTRACT_fuzzer_TIMEOUT = 30 * 60
 PATH_REPORTS = 'reports/'
 if 'ETHRACER_REPORTS' in os.environ and os.environ['ETHRACER_REPORTS'] != "" and os.environ['ETHRACER_REPORTS'] is not None:
 	PATH_REPORTS = os.environ['ETHRACER_REPORTS']
+	if not PATH_REPORTS.endswith('/'):
+		PATH_REPORTS = PATH_REPORTS + '/'
 
 global st
 
@@ -37,9 +39,9 @@ def add_bug(ls, criteria):
 	for l in ls:
 		v += 1<<l
 
-	if v in bugtypes[criteria]: 
+	if v in bugtypes[criteria]:
 		bugtypes[criteria][v] += 1
-	else: 
+	else:
 		bugtypes[criteria][v] = 1
 
 
@@ -50,7 +52,7 @@ def analyze_bugs( nodes , criteria, onlyprint = True ):
 	for b in bugtypes[criteria]:
 		l = []
 		for i in range(10):
-			if (b>>i)&1 : 
+			if (b>>i)&1 :
 				l.append(nodes[i]['name'])
 		if len(l) > 0:
 			found = False
@@ -91,21 +93,21 @@ def execute_one_function( contract_address, code , tx_caller, tx_input, tx_value
 	set_params('call_value','',tx_value)
 	set_params('caller','',tx_caller)
 	set_params('origin','',tx_caller)
-	
+
 	if not send_ether( hex(tx_caller).rstrip('L').lstrip('0x'), contract_address.lstrip('0x'), tx_value):
 		print('Cannot execute function because the caller does not have enough Ether')
 		return False
-	
+
 	# Execute the next block of operations
 	first = True
 	pos = 0
 	newpos = pos
-	
+
 	while (first or newpos != pos):
 
 		first = False
-		pos = newpos    
-					
+		pos = newpos
+
 		# If no more code, then stop
 		if pos >= len(code) or pos < 0:
 			if debug:
@@ -115,7 +117,7 @@ def execute_one_function( contract_address, code , tx_caller, tx_input, tx_value
 
 		if debug: print('%3x : %16s : %s' % (code[pos]['id'], code[pos]['o'], code[pos]['input']) )
 
-	
+
 		# Check if the current op is one of the stop code
 		if code[pos]['o'] == 'STOP' or code[pos]['o'] == 'RETURN' :
 			return True, False
@@ -128,20 +130,20 @@ def execute_one_function( contract_address, code , tx_caller, tx_input, tx_value
 		stack, newpos, ret, mmemory = execute( code, stack, pos, storage, temp_storage, mmemory, data,  st_blocknumber, debug, read_from_blockchain  )
 
 #       print_stack(stack)
-		
+
 
 		# If it returned True, it means the execution should halt
-		if ret: 
+		if ret:
 			if debug: print('Reached halt statement on %3x : %16s : %s' % (code[pos]['id'], code[pos]['o'], code[pos]['input']) )
 			return False, False
-	
-		# If program counter did not move then 
+
+		# If program counter did not move then
 		if pos == newpos:
 			print('\033[95m[-] Unknown %s on line %x \033[0m' % (si['o'],code[pos]['id']) )
 			exit(1)
 			return False, False
 
-	
+
 
 
 
@@ -150,7 +152,7 @@ def check_one_trace( contract_address, trace, storage, code, debug, read_from_bl
 	# Each function in the trace is defined by
 	# name - the name of the functions
 	# tx_input  - input data (include function hash)
-	# tx_caller - sender 
+	# tx_caller - sender
 	# tx_value  - msg.value
 	# params - set of parameters that should be set (usually block number, etc)
 	# each is defined with:
@@ -226,11 +228,11 @@ def print_trace(trace, f= False):
 		if not f:
 			print('%25s  :  %40x : %s' % (t['name'], int(t['tx_caller'], 16),t['tx_input']) )
 		else:
-			f.write('%25s  :  %40x : %s' % (t['name'], int(t['tx_caller'], 16),t['tx_input']) + '\n')   
+			f.write('%25s  :  %40x : %s' % (t['name'], int(t['tx_caller'], 16),t['tx_input']) + '\n')
 	if not f:
 		print('------------------------------------------')
 	else:
-		print('------------------------------------------\n')   
+		print('------------------------------------------\n')
 
 def follows_hb( trace, hb ):
 	for i in range(len(trace)):
@@ -245,15 +247,15 @@ def is_good_trace(trace, hb, nodes):
 		for j in range(i+1, len(trace)):
 			if (trace[j], trace[i]) in hb: return False
 
-			if 'tx_timestamp' in nodes[trace[j]] and 'tx_timestamp' in nodes[trace[i]]: 
+			if 'tx_timestamp' in nodes[trace[j]] and 'tx_timestamp' in nodes[trace[i]]:
 				if int(nodes[trace[j]]['tx_timestamp'], 16) < int(nodes[trace[i]]['tx_timestamp'],16): return False
-			if 'tx_blocknumber' in nodes[trace[j]] and 'tx_blocknumber' in nodes[trace[i]]: 
+			if 'tx_blocknumber' in nodes[trace[j]] and 'tx_blocknumber' in nodes[trace[i]]:
 				if int(nodes[trace[j]]['tx_blocknumber'],16) < int(nodes[trace[i]]['tx_blocknumber'],16): return False
 	return True
 
 def set_balances(trace, contract_address, nodes):
 
-	# For all the users in the trace we give an initial equal balance of 10**22 and 
+	# For all the users in the trace we give an initial equal balance of 10**22 and
 	# for the contract we give the max balance encountered any of the nodes of that trace.
 	max_balance = -1
 	default_addr = '7'*40
@@ -282,7 +284,7 @@ def is_really_new_trace(  new_trace, criteria ):
 
 
 	# If trace already seen then it is not new
-	if (a,b) in minimal_found_traces[criteria] or (b,a) in minimal_found_traces[criteria]: 
+	if (a,b) in minimal_found_traces[criteria] or (b,a) in minimal_found_traces[criteria]:
 		return False
 
 	# If the trace has length at most 2 then no need to further analyze, it is new
@@ -303,7 +305,7 @@ def is_really_new_trace(  new_trace, criteria ):
 	return tnew
 
 def check_one_depth_all_traces( depth, nodes, hb, storage_predefined, balances, contract_address, contract_bytecode, code, criteria, debug, read_from_blockchain, st_blocknumber, time1, par):
-	
+
 	print('*'*80+'\n' +'*'*80+ '\nDepth: %d' % depth)
 
 	n = range(len(nodes))
@@ -378,7 +380,7 @@ def check_one_depth_all_traces( depth, nodes, hb, storage_predefined, balances, 
 					if skip: continue
 
 
-				
+
 				for zz in range(2):
 
 					if 0==zz and not same_state(all_storages[i], all_storages[j]) \
@@ -413,7 +415,7 @@ def check_one_depth_all_traces( depth, nodes, hb, storage_predefined, balances, 
 								involved.append(i[z])
 						add_bug ( involved , zz )
 
-			
+
 
 
 	print('\n\nTraces  HB passed / total : %6d /  %6d' % (hb_passed_traces, total_traces) )
@@ -428,11 +430,11 @@ def check_one_depth_all_traces( depth, nodes, hb, storage_predefined, balances, 
 			print('\t', ft[1] )
 		print()
 
-		analyze_bugs( nodes, zz )    
+		analyze_bugs( nodes, zz )
 
 		print('\nFull traces: %d' % len(all_traces[zz]))
 
-	
+
 	'''
 	print('\n'+'='*30+' Balance equality '+'='*30)
 	print('Minimal found traces: %d ' % len(minimal_found_traces[1]))
@@ -442,7 +444,7 @@ def check_one_depth_all_traces( depth, nodes, hb, storage_predefined, balances, 
 		print('\t', ft[1] )
 	print()
 
-	analyze_bugs( nodes, 1 )  
+	analyze_bugs( nodes, 1 )
 	'''
 
 
@@ -465,14 +467,14 @@ def check_all_traces( trace, max_depth, nodes, hb, storage_predefined, balances,
 	ah = {}
 
 	# remove function parameters
-	for n in nodes: 
+	for n in nodes:
 		n['name'] = re.sub(r'\((.)*\)', '', n['name'])
 
 	cnt = 0
 	for n in nodes:
 		if n['name'] not in ah:
 			ah[n['name']] = cnt
-			cnt +=1 
+			cnt +=1
 
 	chb = 0
 	ctot= 0
