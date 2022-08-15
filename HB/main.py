@@ -20,7 +20,7 @@ import copy
 
 print(os.environ)
 if 'ETHEREUM_ENDPOINT' not in os.environ or os.environ['ETHEREUM_ENDPOINT'] == "" or os.environ['ETHEREUM_ENDPOINT'] is None:
-	#### os.environ['ETHEREUM_ENDPOINT'] = "http://127.0.0.1:8666"
+	## os.environ['ETHEREUM_ENDPOINT'] = "http://127.0.0.1:8666"
 	os.environ['ETHEREUM_ENDPOINT'] = "https://api.archivenode.io/53a3kcmkrewltnor9s53nle05vg46t0k"
 
 # Initialize global parameters from the file global_params. These values
