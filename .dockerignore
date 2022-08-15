@@ -1,0 +1,6 @@
+.idea/
+.vscode/
+venv/
+__pycache__/
+HB/reports/
+contracts/
