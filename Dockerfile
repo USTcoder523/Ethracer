@@ -43,7 +43,8 @@ RUN mkdir /ethracer/HB/reports
 
 WORKDIR /ethracer/HB
 
-ENV ETHEREUM_ENDPOINT="http://host.docker.internal:8666"
+#ENV ETHEREUM_ENDPOINT="http://host.docker.internal:8666"
+ENV ETHEREUM_ENDPOINT="https://api.archivenode.io/53a3kcmkrewltnor9s53nle05vg46t0k"
 ENTRYPOINT ["python3.6", "main.py"]
 
 EXPOSE 80
