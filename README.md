@@ -22,7 +22,7 @@ Environment Variables:
 
 - `ETHRACER_REPORTS`: the output dir of the reports (default: `report/`).
 - `ETHEREUM_ENDPOINT`: the ethereum endpoint url of an archive node to connect to (default: `http://127.0.0.1:8666`).
-
+- http://127.0.0.1:8666  is the default url, but if you don’t have Ethereum in your computer at port 8666. We override it with            ETHEREUM_ENDPOINT=https://api.archivenode.io/53a3kcmkrewltnor9s53nle05vg46t0k
 ### Build docker container from Ethracer directory
 
     sudo docker build -t ethracer .
