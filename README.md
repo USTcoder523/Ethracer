@@ -34,9 +34,10 @@ Environment Variables:
 ### Fire Ethracer!
 
     cd /ethracer/HB && python3.6 main.py --checkone [Contract source code] [Contract address] --blockchain --owner [Owner address]
+    
 ### Alternative Fire
     
-    use deployedBytecode.bin to run ethracer
+    python main.py --checkone [deployedBytecode.bin] [Contract address] --blockchain --owner [Owner address]  
     
 ### Run Tests
 
