@@ -7,3 +7,6 @@ runTests:
 	
 	main.py --checkone ../dataset/contracts/Adapter01-0x3A0430bF7cd2633af111ce3204DB4b0990857a6F/deployedBytecode.bin 0x3A0430bF7cd2633af111ce3204DB4b0990857a6F --blockchain --owner 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 --bin
 	main.py --checkone ../dataset/contracts/UniswapV2Pair-0x26aAd2da94C59524ac0D93F6D6Cbf9071d7086f2/deployedBytecode.bin 0x26aAd2da94C59524ac0D93F6D6Cbf9071d7086f2 --blockchain --owner 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 --bin
+
+
+	main.py --checkone ../dataset/contracts/SaitamaInu-0x8B3192f5eEBD8579568A2Ed41E6FEB402f93f73F/deployedBytecode.bin 0x8B3192f5eEBD8579568A2Ed41E6FEB402f93f73F --blockchain --owner 0x78cE02657F66D4713EEe70A58AEbA661a5F32120 --bin
