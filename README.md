@@ -34,7 +34,10 @@ Environment Variables:
 ### Fire Ethracer!
 
     cd /ethracer/HB && python3.6 main.py --checkone [Contract source code] [Contract address] --blockchain --owner [Owner address]
-
+### Alternative Fire
+    
+    use deployedBytecode.bin to run ethracer
+    
 ### Run Tests
 
 Make sure that you have a **Fully synced blockchain** (atleast uptil 5400000 block number) and that it is running on port 8666. Run the command below and check the /ethracer/HB/reports directory. You can find all the traces including the minimal ones with EO bugs, for two contracts given in tests folder.
