@@ -37,7 +37,7 @@ Environment Variables:
     
 ### Alternative Fire
     cd HB 
-    python main.py --checkone [deployedBytecode.bin] [Contract address] --blockchain --owner [Owner address]  
+    python main.py --checkone [deployedBytecode.bin] [Contract address] --blockchain --owner [Owner address] --bin
     
 ### Run Tests
 
