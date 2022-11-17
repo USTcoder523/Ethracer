@@ -35,7 +35,7 @@ Environment Variables:
 
     cd /ethracer/HB && python3.6 main.py --checkone [Contract source code] [Contract address] --blockchain --owner [Owner address]
     
-### Alternative Fire
+### Alternative Fire (use this)
     cd HB 
     python main.py --checkone [deployedBytecode.bin] [Contract address] --blockchain --owner [Owner address] --bin
     
